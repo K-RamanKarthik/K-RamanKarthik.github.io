@@ -1,0 +1,2377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>phySim – Physics Visualizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)'], ['$', '$']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <style>
+    :root {
+      --bg: #050816;
+      --panel: #0b1020;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.2);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --danger: #f97373;
+      --success: #22c55e;
+      --border-radius: 12px;
+      --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.65);
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      background: radial-gradient(circle at top, #1f2937 0, #020617 52%, #000 100%);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(18px);
+      background: linear-gradient(to bottom, rgba(15, 23, 42, 0.85), transparent);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: conic-gradient(from 210deg, #22c55e, #38bdf8, #f97316, #22c55e);
+      padding: 2px;
+      box-shadow: 0 0 24px rgba(56, 189, 248, 0.6);
+    }
+    .logo-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      background: radial-gradient(circle at 30% 20%, #22c55e 0, #020617 55%);
+    }
+    .logo-text-title { font-weight: 700; font-size: 1.1rem; letter-spacing: 0.05em; text-transform: uppercase; }
+    .logo-text-subtitle { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+    .pill {
+      border-radius: 999px;
+      padding: 6px 14px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+    }
+    .view-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .zoom-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .zoom-control input[type="range"] {
+      width: 110px;
+    }
+    .zoom-label {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+    .zoom-value {
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+    }
+    .module-tabs {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(15, 23, 42, 0.5);
+      flex-wrap: wrap;
+    }
+    .module-tabs-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .module-tabs-spacer {
+      flex: 1;
+      min-width: 12px;
+    }
+    .module-tab {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .module-tab:hover { border-color: rgba(56, 189, 248, 0.5); color: var(--accent); }
+    .module-tab.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(8, 47, 73, 0.7);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3);
+    }
+    main {
+      flex: 1;
+      padding: 18px 24px 28px;
+      display: flex;
+      gap: 18px;
+    }
+    @media (max-width: 900px) { main { flex-direction: column; } header { flex-direction: column; align-items: flex-start; gap: 8px; } }
+    .module-panel { display: none; flex: 1; gap: 18px; width: 100%; }
+    .module-panel.active { display: flex; }
+    @media (max-width: 900px) { .module-panel { flex-direction: column; } }
+    .column {
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 70%),
+                  linear-gradient(to bottom right, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.96));
+      border-radius: var(--border-radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+    .column::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.16), transparent 65%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .column > * { position: relative; z-index: 1; }
+    .column-left { flex: 0 0 265px; max-width: 320px; }
+    .column-center { flex: 1.4; min-width: 260px; }
+    .column-right { flex: 1; min-width: 230px; }
+    @media (max-width: 900px) { .column-left, .column-center, .column-right { flex: 1 0 auto; max-width: 100%; } }
+    .section-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); margin-bottom: 8px; }
+    .section-heading { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; }
+    .section-description { font-size: 0.85rem; color: var(--muted); margin-bottom: 10px; line-height: 1.4; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .chip {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.9);
+    }
+    .chip.chip-primary { border-color: var(--accent); color: var(--accent); background: rgba(15, 23, 42, 0.94); }
+    .control-group {
+      margin-bottom: 12px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+    .control-label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+    .control-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); }
+    .control-value { font-size: 0.8rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .mini-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+    .toggles { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .toggle {
+      font-size: 0.7rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: 4px 10px;
+      background: rgba(15, 23, 42, 0.96);
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle[data-active="true"] {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(8, 47, 73, 0.7);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3);
+    }
+    .canvas-wrapper {
+      position: relative;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.96), #020617);
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .sim-canvas {
+      width: 100%;
+      height: 260px;
+      display: block;
+      background: radial-gradient(circle at 10% 0, rgba(56, 189, 248, 0.15), transparent 55%),
+                  radial-gradient(circle at 80% 0, rgba(129, 140, 248, 0.18), transparent 55%),
+                  #020617;
+    }
+    @media (max-width: 900px) { .sim-canvas { height: 220px; } }
+    .canvas-overlay {
+      position: absolute;
+      inset: 8px 12px auto auto;
+      display: flex;
+      gap: 6px;
+    }
+    .btn {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(15, 23, 42, 0.96);
+      color: var(--muted);
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .btn-primary {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(8, 47, 73, 0.88);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3);
+    }
+    .btn:active { transform: translateY(0.5px) scale(0.995); }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .status-tag {
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.96);
+      font-size: 0.7rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-tag-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--success);
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+    }
+    .status-tag-dot.paused { background: #f97316; box-shadow: 0 0 10px rgba(249, 115, 22, 0.8); }
+    .equation-block {
+      border-radius: 9px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.96);
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+    .equation-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); margin-bottom: 4px; }
+    .equation-note { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+    .equation-highlight {
+      border-radius: 8px;
+      padding: 7px 8px;
+      background: rgba(8, 47, 73, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.6);
+      margin-bottom: 6px;
+      font-size: 0.82rem;
+    }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 4px; font-size: 0.72rem; margin-top: 4px; }
+    .badge {
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      color: var(--muted);
+    }
+    .badge.badge-critical { border-color: var(--danger); color: var(--danger); }
+    .tiny { font-size: 0.7rem; color: var(--muted); margin-top: 6px; }
+    a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <div class="logo-mark"><div class="logo-inner"></div></div>
+      <div>
+        <div class="logo-text-title">phySim</div>
+        <div class="logo-text-subtitle">Interactive Physics Visualizer</div>
+      </div>
+    </div>
+    <div class="pill">
+      <span style="width: 8px; height: 8px; border-radius:999px; background:#22c55e; box-shadow:0 0 10px rgba(34,197,94,.9);"></span>
+      Real‑time math & motion
+    </div>
+  </header>
+
+  <nav class="module-tabs">
+    <div class="module-tabs-group">
+      <button class="module-tab active" data-module="mass-spring">Mass–Spring</button>
+      <button class="module-tab" data-module="projectile">Projectile</button>
+      <button class="module-tab" data-module="pendulum">Simple Pendulum</button>
+      <button class="module-tab" data-module="waves">Waves</button>
+      <button class="module-tab" data-module="electric">Electric Field</button>
+      <button class="module-tab" data-module="lenses">Lenses</button>
+    </div>
+    <div class="module-tabs-spacer"></div>
+    <div class="view-controls">
+      <button class="btn fullscreen-btn" id="fullscreenBtn">Full screen</button>
+      <div class="zoom-control">
+        <span class="zoom-label">Zoom</span>
+        <input type="range" id="zoomSlider" min="0.5" max="2" step="0.1" value="1" />
+        <span class="zoom-value" id="zoomValue">100%</span>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Mass–Spring -->
+    <div class="module-panel active" id="panel-mass-spring">
+      <section class="column column-left">
+        <div class="section-title">Module</div>
+        <div class="section-heading">Mass–Spring Oscillator (SHM & damping)</div>
+        <p class="section-description">
+          Explore how a mass on a spring moves when you change the mass, spring stiffness, and damping.
+          Equilibrium is centered in the view.
+        </p>
+        <div class="chip-row">
+          <div class="chip chip-primary">Mechanics</div>
+          <div class="chip">SHM</div>
+          <div class="chip">ODEs</div>
+        </div>
+        <div class="toggles">
+          <div class="toggle" data-preset="no-damping">No damping</div>
+          <div class="toggle" data-preset="underdamped">Underdamped</div>
+          <div class="toggle" data-preset="critical">Critical</div>
+          <div class="toggle" data-preset="overdamped">Overdamped</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Mass \(m\)</div>
+            <div class="control-value" id="ms-massValue"></div>
+          </div>
+          <input type="range" id="ms-massSlider" min="0.5" max="5" step="0.1" value="1.0" />
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Spring constant \(k\)</div>
+            <div class="control-value" id="ms-kValue"></div>
+          </div>
+          <input type="range" id="ms-kSlider" min="2" max="40" step="1" value="15" />
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Damping \(c\)</div>
+            <div class="control-value" id="ms-cValue"></div>
+          </div>
+          <input type="range" id="ms-cSlider" min="0" max="12" step="0.1" value="1.5" />
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Animation speed</div>
+            <div class="control-value" id="ms-speedValue"></div>
+          </div>
+          <input type="range" id="ms-speedSlider" min="0.01" max="1" step="0.01" value="1" />
+          <div class="mini-label">Scale how quickly simulated time passes.</div>
+        </div>
+        <p class="tiny">Drag the mass to set initial displacement.</p>
+      </section>
+      <section class="column column-center">
+        <div class="status-row">
+          <div class="status-tag" id="ms-simStatus">
+            <span class="status-tag-dot" id="ms-statusDot"></span>
+            <span id="ms-statusLabel">Running</span>
+          </div>
+          <div style="font-size:0.75rem; color:var(--muted);">
+            \(\zeta\): <span id="ms-zetaValue" style="color:var(--accent);"></span>
+          </div>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="ms-canvas" class="sim-canvas"></canvas>
+          <div class="canvas-overlay">
+            <button class="btn btn-primary" id="ms-playPauseBtn">Pause</button>
+            <button class="btn" id="ms-resetBtn">Reset</button>
+          </div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Behaviour</div>
+          <div id="ms-regimeLabel" style="font-size:0.85rem;"></div>
+        </div>
+      </section>
+      <section class="column column-right">
+        <div class="section-title">Math</div>
+        <div class="equation-block">
+          <div class="equation-title">Equation of motion</div>
+          <div>\[ m \ddot{x} + c \dot{x} + k x = 0 \]</div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Derived quantities</div>
+          <div class="equation-highlight" id="ms-derivedFrequency">\omega_0 = \sqrt{k/m}</div>
+          <div class="equation-highlight" id="ms-derivedZeta">\zeta = c/(2\sqrt{km})</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Projectile -->
+    <div class="module-panel" id="panel-projectile">
+      <section class="column column-left">
+        <div class="section-title">Module</div>
+        <div class="section-heading">Projectile Motion</div>
+        <p class="section-description">
+          Launch a projectile with initial speed and angle. See the parabolic trajectory and the
+          equations of motion.
+        </p>
+        <div class="chip-row">
+          <div class="chip chip-primary">Kinematics</div>
+          <div class="chip">2D</div>
+          <div class="chip">Parabola</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Initial speed \(v_0\)</div>
+            <div class="control-value" id="pj-v0Value"></div>
+          </div>
+          <input type="range" id="pj-v0Slider" min="5" max="40" step="1" value="20" />
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Launch angle \(\theta\)</div>
+            <div class="control-value" id="pj-angleValue"></div>
+          </div>
+          <input type="range" id="pj-angleSlider" min="5" max="85" step="1" value="45" />
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Gravity \(g\)</div>
+            <div class="control-value" id="pj-gValue"></div>
+          </div>
+          <input type="range" id="pj-gSlider" min="5" max="40" step="1" value="10" />
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Wall position \(x\)</div>
+            <div class="control-value" id="pj-wallXValue"></div>
+          </div>
+          <input type="range" id="pj-wallXSlider" min="2" max="80" step="1" value="20" />
+          <div class="mini-label">Horizontal position from the launch point.</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Wall height</div>
+            <div class="control-value" id="pj-wallHValue"></div>
+          </div>
+          <input type="range" id="pj-wallHSlider" min="1" max="40" step="1" value="10" />
+          <div class="mini-label">Height measured from the floor.</div>
+        </div>
+        <div class="control-group">
+          <button class="btn btn-primary" id="pj-addWallBtn" style="width:100%; margin-bottom:6px;">Add wall</button>
+          <button class="btn" id="pj-clearWallsBtn" style="width:100%;">Clear walls</button>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Animation speed</div>
+            <div class="control-value" id="pj-speedValue"></div>
+          </div>
+          <input type="range" id="pj-speedSlider" min="0.01" max="1" step="0.01" value="1" />
+          <div class="mini-label">Slower or faster flight time.</div>
+        </div>
+        <button class="btn btn-primary" id="pj-launchBtn" style="width:100%; margin-top:8px;">Launch</button>
+        <p class="tiny">Click to launch. Reset to try again.</p>
+      </section>
+      <section class="column column-center">
+        <div class="status-row">
+          <div class="status-tag" id="pj-simStatus">
+            <span class="status-tag-dot" id="pj-statusDot"></span>
+            <span id="pj-statusLabel">Ready</span>
+          </div>
+          <div style="font-size:0.75rem; color:var(--muted);">
+            Range: <span id="pj-rangeValue" style="color:var(--accent);">0</span> m
+          </div>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="pj-canvas" class="sim-canvas"></canvas>
+          <div class="canvas-overlay">
+            <button class="btn btn-primary" id="pj-resetBtn">Reset</button>
+          </div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Current</div>
+          <div id="pj-currentState" style="font-size:0.85rem;"></div>
+        </div>
+      </section>
+      <section class="column column-right">
+        <div class="section-title">Math</div>
+        <div class="equation-block">
+          <div class="equation-title">Equations</div>
+          <div>\[ x(t) = v_0 \cos\theta \cdot t \]</div>
+          <div>\[ y(t) = v_0 \sin\theta \cdot t - \frac{1}{2} g t^2 \]</div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Derived</div>
+          <div class="equation-highlight" id="pj-derivedRange">Range: \(R = v_0^2 \sin(2\theta)/g\)</div>
+          <div class="equation-highlight" id="pj-derivedMaxH">Max height: \(H = v_0^2 \sin^2\theta/(2g)\)</div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Walls</div>
+          <div id="pj-wallsSummary" style="font-size:0.82rem; color:var(--muted);">
+            No walls added.
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Waves -->
+    <div class="module-panel" id="panel-waves">
+      <section class="column column-left">
+        <div class="section-title">Module</div>
+        <div class="section-heading">Waves on a String</div>
+        <p class="section-description">
+          Explore how a traveling wave propagates along a string. Adjust wavelength, frequency,
+          and amplitude.
+        </p>
+        <div class="chip-row">
+          <div class="chip chip-primary">Waves</div>
+          <div class="chip">Harmonics</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Amplitude \(A\)</div>
+            <div class="control-value" id="wv-ampValue"></div>
+          </div>
+          <input type="range" id="wv-ampSlider" min="5" max="40" step="1" value="20" />
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Wavelength \(\lambda\)</div>
+            <div class="control-value" id="wv-lambdaValue"></div>
+          </div>
+          <input type="range" id="wv-lambdaSlider" min="40" max="200" step="8" value="80" />
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Frequency \(f\)</div>
+            <div class="control-value" id="wv-freqValue"></div>
+          </div>
+          <input type="range" id="wv-freqSlider" min="0.5" max="5" step="0.1" value="1.5" />
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Highlight points</div>
+          </div>
+          <div class="toggles">
+            <div class="toggle" data-highlight="none">Off</div>
+            <div class="toggle" data-highlight="single">Single point</div>
+            <div class="toggle" data-highlight="per-wavelength">Every wavelength</div>
+          </div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Point position</div>
+            <div class="control-value" id="wv-highlightPosValue"></div>
+          </div>
+          <input type="range" id="wv-highlightPosSlider" min="0" max="1" step="0.01" value="0.25" />
+          <div class="mini-label">Used when \"Single point\" is active (fraction along string).</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Animation speed</div>
+            <div class="control-value" id="wv-speedFactorValue"></div>
+          </div>
+          <input type="range" id="wv-speedSlider" min="0.01" max="1" step="0.01" value="1" />
+          <div class="mini-label">Slow motion or sped-up time.</div>
+        </div>
+        <div class="toggles">
+          <div class="toggle" data-preset="traveling">Traveling</div>
+          <div class="toggle" data-preset="standing">Standing</div>
+        </div>
+      </section>
+      <section class="column column-center">
+        <div class="status-row">
+          <div class="status-tag" id="wv-simStatus">
+            <span class="status-tag-dot" id="wv-statusDot"></span>
+            <span id="wv-statusLabel">Running</span>
+          </div>
+          <div style="font-size:0.75rem; color:var(--muted);">
+            \(v = \lambda f\): <span id="wv-speedValue" style="color:var(--accent);"></span>
+          </div>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="wv-canvas" class="sim-canvas"></canvas>
+          <div class="canvas-overlay">
+            <button class="btn btn-primary" id="wv-playPauseBtn">Pause</button>
+          </div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Wave</div>
+          <div id="wv-modeLabel" style="font-size:0.85rem;">Traveling wave: \(y = A\sin(kx - \omega t)\)</div>
+        </div>
+      </section>
+      <section class="column column-right">
+        <div class="section-title">Math</div>
+        <div class="equation-block">
+          <div class="equation-title">Wave equation</div>
+          <div>\[ \frac{\partial^2 y}{\partial t^2} = v^2 \frac{\partial^2 y}{\partial x^2} \]</div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Traveling wave</div>
+          <div>\[ y(x,t) = A \sin(kx - \omega t) \]</div>
+          <div class="equation-note">\(k = 2\pi/\lambda\), \(\omega = 2\pi f\)</div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Standing wave</div>
+          <div>\[ y(x,t) = 2A \sin(kx) \cos(\omega t) \]</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Electric Field -->
+    <div class="module-panel" id="panel-electric">
+      <section class="column column-left">
+        <div class="section-title">Module</div>
+        <div class="section-heading">Electric Field of Two Charges</div>
+        <p class="section-description">
+          Two point charges with adjustable magnitude and sign. See how the field lines and
+          vectors change.
+        </p>
+        <div class="chip-row">
+          <div class="chip chip-primary">Electrostatics</div>
+          <div class="chip">Coulomb</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Charge 1 \(q_1\)</div>
+            <div class="control-value" id="ef-q1Value"></div>
+          </div>
+          <input type="range" id="ef-q1Slider" min="-1" max="1" step="0.1" value="1" />
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Charge 2 \(q_2\)</div>
+            <div class="control-value" id="ef-q2Value"></div>
+          </div>
+          <input type="range" id="ef-q2Slider" min="-1" max="1" step="0.1" value="-0.5" />
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Separation</div>
+            <div class="control-value" id="ef-sepValue"></div>
+          </div>
+          <input type="range" id="ef-sepSlider" min="0.5" max="5" step="0.1" value="2" />
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">New charge \(q_{\text{new}}\)</div>
+            <div class="control-value" id="ef-newQValue"></div>
+          </div>
+          <input type="range" id="ef-newQSlider" min="-1" max="1" step="0.1" value="1" />
+          <div class="mini-label">Click in the field region to add a charge with this value.</div>
+        </div>
+        <div class="control-group">
+          <button class="btn" id="ef-clearExtraBtn" style="width:100%;">Clear extra charges</button>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Interaction mode</div>
+          </div>
+          <div class="toggles">
+            <div class="toggle" data-ef-mode="add">Add charge</div>
+            <div class="toggle" data-ef-mode="remove">Remove charge</div>
+            <div class="toggle" data-ef-mode="move">Move charge</div>
+            <div class="toggle" data-ef-mode="pan">Move screen</div>
+          </div>
+        </div>
+        <p class="tiny">Use the mode buttons to add, remove, move charges, or pan the view.</p>
+      </section>
+      <section class="column column-center">
+        <div class="status-row">
+          <div class="status-tag" id="ef-simStatus">
+            <span class="status-tag-dot" id="ef-statusDot"></span>
+            <span>Static field</span>
+          </div>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="ef-canvas" class="sim-canvas"></canvas>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Configuration</div>
+          <div id="ef-configLabel" style="font-size:0.85rem;">Two charges: dipole-like field</div>
+        </div>
+      </section>
+      <section class="column column-right">
+        <div class="section-title">Math</div>
+        <div class="equation-block">
+          <div class="equation-title">Coulomb's law</div>
+          <div>\[ \vec{E} = \frac{k_e q}{r^2} \hat{r} \]</div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Superposition</div>
+          <div>\[ \vec{E}_{\text{total}} = \vec{E}_1 + \vec{E}_2 \]</div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Field magnitude</div>
+          <div>\[ |\vec{E}| = k_e \frac{|q|}{r^2} \]</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Simple Pendulum -->
+    <div class="module-panel" id="panel-pendulum">
+      <section class="column column-left">
+        <div class="section-title">Module</div>
+        <div class="section-heading">Simple Pendulum</div>
+        <p class="section-description">
+          A bob of mass \(m\) attached to a massless string of length \(L\) swinging under gravity.
+          Drag the bob to set the initial angle.
+        </p>
+        <div class="chip-row">
+          <div class="chip chip-primary">Oscillations</div>
+          <div class="chip">Pendulum</div>
+          <div class="chip">SHM (small angle)</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Length \(L\)</div>
+            <div class="control-value" id="pe-LValue"></div>
+          </div>
+          <input type="range" id="pe-LSlider" min="0.5" max="3" step="0.1" value="1.5" />
+          <div class="mini-label">Longer pendulums swing more slowly.</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Gravity \(g\)</div>
+            <div class="control-value" id="pe-gValue"></div>
+          </div>
+          <input type="range" id="pe-gSlider" min="2" max="20" step="0.5" value="9.8" />
+          <div class="mini-label">Approximate \(g \approx 9.8\,\text{m/s}^2\) on Earth.</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Damping</div>
+            <div class="control-value" id="pe-dampValue"></div>
+          </div>
+          <input type="range" id="pe-dampSlider" min="0" max="0.3" step="0.01" value="0.05" />
+          <div class="mini-label">Energy loss per swing (air resistance, friction).</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Animation speed</div>
+            <div class="control-value" id="pe-speedValue"></div>
+          </div>
+          <input type="range" id="pe-speedSlider" min="0.1" max="2" step="0.05" value="1" />
+        </div>
+        <p class="tiny">Click and drag the bob to choose the initial angle.</p>
+      </section>
+      <section class="column column-center">
+        <div class="status-row">
+          <div class="status-tag" id="pe-simStatus">
+            <span class="status-tag-dot" id="pe-statusDot"></span>
+            <span id="pe-statusLabel">Running</span>
+          </div>
+          <div style="font-size:0.75rem; color:var(--muted);">
+            Period: <span id="pe-periodValue" style="color:var(--accent);"></span>
+          </div>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="pe-canvas" class="sim-canvas"></canvas>
+          <div class="canvas-overlay">
+            <button class="btn btn-primary" id="pe-playPauseBtn">Pause</button>
+            <button class="btn" id="pe-resetBtn">Reset</button>
+          </div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">State</div>
+          <div id="pe-currentState" style="font-size:0.85rem;"></div>
+        </div>
+      </section>
+      <section class="column column-right">
+        <div class="section-title">Math</div>
+        <div class="equation-block">
+          <div class="equation-title">Exact equation</div>
+          <div>\[ \theta'' + \frac{b}{m}\,\theta' + \frac{g}{L}\sin\theta = 0 \]</div>
+          <div class="equation-note">We integrate the full nonlinear equation numerically.</div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Small-angle approximation</div>
+          <div class="equation-highlight" id="pe-periodEq">\(T \approx 2\pi\sqrt{L/g}\)</div>
+          <div class="equation-note">For \(|\theta| \lesssim 10^\circ\), \(\sin\theta \approx \theta\) and motion is SHM.</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Refraction through lenses -->
+    <div class="module-panel" id="panel-lenses">
+      <section class="column column-left">
+        <div class="section-title">Module</div>
+        <div class="section-heading">Thin Lens Ray Diagram</div>
+        <p class="section-description">
+          Visualize how a thin converging or diverging lens forms images. Move the object and focal
+          length to see how the image changes.
+        </p>
+        <div class="chip-row">
+          <div class="chip chip-primary">Optics</div>
+          <div class="chip">Refraction</div>
+          <div class="chip">Thin lens</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Lens type</div>
+          </div>
+          <div class="toggles">
+            <div class="toggle" data-ln-type="converging">Converging (convex)</div>
+            <div class="toggle" data-ln-type="diverging">Diverging (concave)</div>
+          </div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Focal length \(f\)</div>
+            <div class="control-value" id="ln-fValue"></div>
+          </div>
+          <input type="range" id="ln-fSlider" min="1" max="8" step="0.2" value="3" />
+          <div class="mini-label">Positive for converging, negative for diverging.</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Object distance \(d_o\)</div>
+            <div class="control-value" id="ln-doValue"></div>
+          </div>
+          <input type="range" id="ln-doSlider" min="1" max="12" step="0.2" value="6" />
+          <div class="mini-label">Measured from the lens to the object along the axis.</div>
+        </div>
+        <div class="control-group">
+          <div class="control-label-row">
+            <div class="control-label">Object height</div>
+            <div class="control-value" id="ln-hoValue"></div>
+          </div>
+          <input type="range" id="ln-hoSlider" min="0.5" max="4" step="0.1" value="2" />
+        </div>
+        <p class="tiny">Object is on the left of the lens; image may appear on either side depending on configuration.</p>
+      </section>
+      <section class="column column-center">
+        <div class="status-row">
+          <div class="status-tag" id="ln-simStatus">
+            <span class="status-tag-dot" id="ln-statusDot"></span>
+            <span id="ln-statusLabel">Geometric optics</span>
+          </div>
+          <div style="font-size:0.75rem; color:var(--muted);">
+            Image distance: <span id="ln-diValue" style="color:var(--accent);"></span>
+          </div>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="ln-canvas" class="sim-canvas"></canvas>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Lens equation</div>
+          <div id="ln-equation" style="font-size:0.85rem;"></div>
+        </div>
+      </section>
+      <section class="column column-right">
+        <div class="section-title">Image properties</div>
+        <div class="equation-block">
+          <div class="equation-title">Sign conventions</div>
+          <div class="equation-note">
+            Converging lens: \(f &gt; 0\). Diverging lens: \(f &lt; 0\). Real images have \(d_i &gt; 0\);
+            virtual images have \(d_i &lt; 0\).
+          </div>
+        </div>
+        <div class="equation-block">
+          <div class="equation-title">Magnification</div>
+          <div class="equation-highlight" id="ln-magEq">\(m = -d_i/d_o = h_i/h_o\)</div>
+          <div class="equation-note">If \(|m| &gt; 1\) image is magnified; if \(|m| &lt; 1\) it is reduced.</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      // Global UI zoom factor
+      let uiZoom = 1.0;
+
+      // Module switching
+      document.querySelectorAll('.module-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const id = tab.dataset.module;
+          document.querySelectorAll('.module-tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.module-panel').forEach(p => p.classList.remove('active'));
+          tab.classList.add('active');
+          const panel = document.getElementById('panel-' + id);
+          if (panel) panel.classList.add('active');
+          setTimeout(() => {
+            if (typeof msResize === 'function') msResize();
+            if (typeof pjResize === 'function') pjResize();
+            if (typeof wvResize === 'function') wvResize();
+            if (typeof efResize === 'function') efResize();
+            if (typeof peResize === 'function') peResize();
+            if (typeof lnResize === 'function') lnResize();
+          }, 50);
+        });
+      });
+
+      // Fullscreen toggle
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('click', () => {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          } else {
+            document.exitFullscreen().catch(() => {});
+          }
+        });
+        document.addEventListener('fullscreenchange', () => {
+          fullscreenBtn.textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen';
+        });
+      }
+
+      // Zoom control
+      const zoomSlider = document.getElementById('zoomSlider');
+      const zoomValue = document.getElementById('zoomValue');
+      if (zoomSlider && zoomValue) {
+        const updateZoomLabel = () => {
+          zoomValue.textContent = Math.round(uiZoom * 100) + '%';
+        };
+        uiZoom = parseFloat(zoomSlider.value);
+        updateZoomLabel();
+        zoomSlider.addEventListener('input', () => {
+          uiZoom = parseFloat(zoomSlider.value);
+          updateZoomLabel();
+        });
+      }
+
+      // ========== Mass–Spring (centered equilibrium) ==========
+      const msCanvas = document.getElementById('ms-canvas');
+      const msCtx = msCanvas.getContext('2d');
+
+      function msResize() {
+        const rect = msCanvas.getBoundingClientRect();
+        const scale = window.devicePixelRatio || 1;
+        msCanvas.width = rect.width * scale;
+        msCanvas.height = rect.height * scale;
+        msCtx.setTransform(scale, 0, 0, scale, 0, 0);
+      }
+      window.addEventListener('resize', msResize);
+      msResize();
+
+      let ms = { m: 1.0, k: 15.0, c: 1.5, x: 1.0, v: 0.0, time: 0, running: true, speed: 1.0 };
+
+      function msGeometry() {
+        const w = msCanvas.getBoundingClientRect().width;
+        const h = msCanvas.getBoundingClientRect().height;
+        const centerX = w / 2;
+        const springOriginX = centerX - 90;
+        const massW = 70;
+        const massH = 54;
+        const scale = (w * 0.35) / 2.5;
+        const massCenterX = centerX + ms.x * scale;
+        const massRect = {
+          x: massCenterX - massW / 2,
+          y: h * 0.35 + 20,
+          w: massW,
+          h: massH
+        };
+        return { w, h, centerX, springOriginX, massRect, scale };
+      }
+
+      document.getElementById('ms-massSlider').addEventListener('input', () => {
+        ms.m = parseFloat(document.getElementById('ms-massSlider').value);
+        msUpdateLabels();
+      });
+      document.getElementById('ms-kSlider').addEventListener('input', () => {
+        ms.k = parseFloat(document.getElementById('ms-kSlider').value);
+        msUpdateLabels();
+      });
+      document.getElementById('ms-cSlider').addEventListener('input', () => {
+        ms.c = parseFloat(document.getElementById('ms-cSlider').value);
+        msUpdateLabels();
+      });
+      document.getElementById('ms-speedSlider').addEventListener('input', () => {
+        ms.speed = parseFloat(document.getElementById('ms-speedSlider').value);
+        msUpdateLabels();
+      });
+      document.getElementById('ms-playPauseBtn').addEventListener('click', () => {
+        ms.running = !ms.running;
+        document.getElementById('ms-playPauseBtn').textContent = ms.running ? 'Pause' : 'Play';
+        document.getElementById('ms-statusLabel').textContent = ms.running ? 'Running' : 'Paused';
+        document.getElementById('ms-statusDot').classList.toggle('paused', !ms.running);
+      });
+      document.getElementById('ms-resetBtn').addEventListener('click', () => {
+        ms.x = 1.0;
+        ms.v = 0.0;
+        ms.time = 0;
+      });
+
+      document.querySelectorAll('#panel-mass-spring .toggle[data-preset]').forEach(t => {
+        t.addEventListener('click', () => {
+          document.querySelectorAll('#panel-mass-spring .toggle').forEach(o => o.dataset.active = 'false');
+          t.dataset.active = 'true';
+          const preset = t.dataset.preset;
+          if (preset === 'no-damping') { ms.m = 1.0; ms.k = 15.0; ms.c = 0.0; }
+          else if (preset === 'underdamped') { ms.m = 1.0; ms.k = 15.0; ms.c = 1.5; }
+          else if (preset === 'critical') { ms.m = 1.0; ms.k = 15.0; ms.c = 2 * Math.sqrt(ms.k * ms.m); }
+          else { ms.m = 1.5; ms.k = 8.0; ms.c = 2.8 * Math.sqrt(ms.k * ms.m); }
+          ms.x = 1.0; ms.v = 0.0; ms.time = 0;
+          document.getElementById('ms-massSlider').value = ms.m;
+          document.getElementById('ms-kSlider').value = ms.k;
+          document.getElementById('ms-cSlider').value = ms.c;
+          msUpdateLabels();
+        });
+      });
+      document.querySelector('#panel-mass-spring .toggle[data-preset="no-damping"]').dataset.active = 'true';
+
+      let msDragging = false;
+      let msDragOffset = 0;
+      msCanvas.addEventListener('mousedown', (e) => {
+        const rect = msCanvas.getBoundingClientRect();
+        const cx = e.clientX - rect.left;
+        const cy = e.clientY - rect.top;
+        const { massRect } = msGeometry();
+        if (cx >= massRect.x && cx <= massRect.x + massRect.w && cy >= massRect.y && cy <= massRect.y + massRect.h) {
+          msDragging = true;
+          msDragOffset = cx - (massRect.x + massRect.w / 2);
+        }
+      });
+      window.addEventListener('mouseup', () => msDragging = false);
+      window.addEventListener('mousemove', (e) => {
+        if (!msDragging) return;
+        const rect = msCanvas.getBoundingClientRect();
+        const cx = e.clientX - rect.left - msDragOffset;
+        const { centerX, scale } = msGeometry();
+        ms.x = Math.max(-2, Math.min(2, (cx - centerX) / scale));
+        ms.v = 0;
+      });
+
+      function msUpdateLabels() {
+        document.getElementById('ms-massValue').textContent = ms.m.toFixed(1) + ' kg';
+        document.getElementById('ms-kValue').textContent = ms.k.toFixed(0) + ' N/m';
+        document.getElementById('ms-cValue').textContent = ms.c.toFixed(1) + ' N·s/m';
+        document.getElementById('ms-speedValue').textContent = ms.speed.toFixed(2) + '×';
+        const omega0 = Math.sqrt(ms.k / ms.m);
+        const zeta = ms.c / (2 * Math.sqrt(ms.k * ms.m));
+        document.getElementById('ms-zetaValue').textContent = zeta.toFixed(2);
+        let regime, regimeColor;
+        if (Math.abs(zeta) < 1e-3) {
+          regime = 'No damping — pure SHM with constant amplitude.';
+          regimeColor = '#38bdf8';
+        } else if (zeta < 1 - 1e-3) {
+          regime = 'Underdamped — oscillatory with decaying amplitude.';
+          regimeColor = '#38bdf8';
+        } else if (Math.abs(zeta - 1) <= 1e-3) {
+          regime = 'Critically damped — fastest return without oscillation.';
+          regimeColor = '#22c55e';
+        } else {
+          regime = 'Overdamped — no oscillations, slow return.';
+          regimeColor = '#f97373';
+        }
+        document.getElementById('ms-regimeLabel').textContent = regime;
+        document.getElementById('ms-regimeLabel').style.color = regimeColor;
+        document.getElementById('ms-derivedFrequency').innerHTML = '\\[\\omega_0 = \\sqrt{\\frac{k}{m}} \\approx ' + omega0.toFixed(2) + '\\,\\text{rad/s}\\]';
+        document.getElementById('ms-derivedZeta').innerHTML = '\\[\\zeta = \\frac{c}{2\\sqrt{km}} \\approx ' + zeta.toFixed(2) + '\\]';
+        if (window.MathJax && window.MathJax.typesetPromise) {
+          window.MathJax.typesetPromise([document.getElementById('ms-derivedFrequency'), document.getElementById('ms-derivedZeta')]).catch(() => {});
+        }
+      }
+
+      function msStep(dt) {
+        const a = -(ms.c / ms.m) * ms.v - (ms.k / ms.m) * ms.x;
+        ms.v += a * dt;
+        ms.x += ms.v * dt;
+        ms.time += dt;
+      }
+
+      function msDraw() {
+        const { w, h, centerX, springOriginX, massRect, scale } = msGeometry();
+        msCtx.clearRect(0, 0, w, h);
+
+        msCtx.save();
+        msCtx.translate(w / 2, h / 2);
+        msCtx.scale(uiZoom, uiZoom);
+        msCtx.translate(-w / 2, -h / 2);
+
+        const originY = h * 0.35;
+        const baseY = massRect.y + massRect.h + 4;
+
+        msCtx.strokeStyle = 'rgba(148,163,184,0.7)';
+        msCtx.lineWidth = 1;
+        msCtx.beginPath();
+        msCtx.moveTo(0, baseY + 8);
+        msCtx.lineTo(w, baseY + 8);
+        msCtx.stroke();
+
+        msCtx.strokeStyle = 'rgba(148,163,184,0.85)';
+        msCtx.lineWidth = 4;
+        msCtx.beginPath();
+        msCtx.moveTo(springOriginX - 10, originY + massRect.h / 2);
+        const coils = 12;
+        const length = massRect.x + massRect.w / 2 - springOriginX;
+        const stepX = length / coils;
+        let xPos = springOriginX;
+        const amp = 10;
+        for (let i = 0; i < coils; i++) {
+          const dir = i % 2 === 0 ? -1 : 1;
+          xPos += stepX / 2;
+          msCtx.lineTo(xPos, originY + massRect.h / 2 + dir * amp);
+          xPos += stepX / 2;
+          msCtx.lineTo(xPos, originY + massRect.h / 2);
+        }
+        msCtx.stroke();
+
+        msCtx.fillStyle = 'rgba(8,47,73,0.9)';
+        msCtx.strokeStyle = 'rgba(56,189,248,0.9)';
+        msCtx.lineWidth = 2;
+        const r = 12;
+        const cx = massRect.x + massRect.w / 2;
+        const cy = massRect.y + massRect.h / 2;
+        msCtx.beginPath();
+        msCtx.arc(cx, cy, r, 0, Math.PI * 2);
+        msCtx.fill();
+        msCtx.stroke();
+
+        const massGradient = msCtx.createLinearGradient(massRect.x, massRect.y, massRect.x + massRect.w, massRect.y + massRect.h);
+        massGradient.addColorStop(0, 'rgba(15,23,42,0.98)');
+        massGradient.addColorStop(1, 'rgba(6,78,59,0.95)');
+        msCtx.fillStyle = massGradient;
+        msCtx.strokeStyle = 'rgba(148,163,184,0.9)';
+        msCtx.lineWidth = 2;
+        msCtx.beginPath();
+        msCtx.roundRect(massRect.x, massRect.y, massRect.w, massRect.h, 9);
+        msCtx.fill();
+        msCtx.stroke();
+
+        const dispWidth = ms.x * scale;
+        msCtx.fillStyle = 'rgba(56,189,248,0.35)';
+        msCtx.beginPath();
+        msCtx.moveTo(centerX, baseY);
+        msCtx.lineTo(centerX + dispWidth, baseY);
+        msCtx.lineTo(centerX + dispWidth, baseY + 8);
+        msCtx.lineTo(centerX, baseY + 8);
+        msCtx.closePath();
+        msCtx.fill();
+        msCtx.strokeStyle = 'rgba(56,189,248,0.9)';
+        msCtx.lineWidth = 1.5;
+        msCtx.beginPath();
+        msCtx.moveTo(centerX, baseY + 4);
+        msCtx.lineTo(centerX + dispWidth, baseY + 4);
+        msCtx.stroke();
+
+        msCtx.fillStyle = 'rgba(56,189,248,0.35)';
+        msCtx.font = '12px system-ui';
+        msCtx.fillText('equilibrium', centerX - 45, baseY + 25);
+        msCtx.restore();
+      }
+
+      function msAnimate(t) {
+        if (document.getElementById('panel-mass-spring').classList.contains('active')) {
+          if (ms.running && !msDragging) {
+            const dtBase = 0.01 * ms.speed;
+            for (let i = 0; i < 3; i++) msStep(dtBase);
+          }
+          msDraw();
+        }
+        requestAnimationFrame(msAnimate);
+      }
+      msUpdateLabels();
+      msAnimate(0);
+
+      // ========== Projectile ==========
+      const pjCanvas = document.getElementById('pj-canvas');
+      const pjCtx = pjCanvas.getContext('2d');
+
+      function pjResize() {
+        const rect = pjCanvas.getBoundingClientRect();
+        const scale = window.devicePixelRatio || 1;
+        pjCanvas.width = rect.width * scale;
+        pjCanvas.height = rect.height * scale;
+        pjCtx.setTransform(scale, 0, 0, scale, 0, 0);
+      }
+      window.addEventListener('resize', pjResize);
+      pjResize();
+
+      let pj = {
+        v0: 20,
+        angle: 45 * Math.PI / 180,
+        g: 10,
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        t: 0,
+        launched: false,
+        trail: [],
+        speed: 1.0,
+        wallX: 20,
+        wallH: 10,
+        walls: []
+      };
+
+      function pjLaunch() {
+        pj.v0 = parseFloat(document.getElementById('pj-v0Slider').value);
+        pj.angle = parseFloat(document.getElementById('pj-angleSlider').value) * Math.PI / 180;
+        pj.g = parseFloat(document.getElementById('pj-gSlider').value);
+        pj.x = 0;
+        pj.y = 0;
+        pj.vx = pj.v0 * Math.cos(pj.angle);
+        pj.vy = pj.v0 * Math.sin(pj.angle);
+        pj.t = 0;
+        pj.launched = true;
+        pj.trail = [];
+      }
+
+      document.getElementById('pj-v0Slider').addEventListener('input', () => {
+        pj.v0 = parseFloat(document.getElementById('pj-v0Slider').value);
+        pjUpdateLabels();
+      });
+      document.getElementById('pj-angleSlider').addEventListener('input', () => {
+        pj.angle = parseFloat(document.getElementById('pj-angleSlider').value) * Math.PI / 180;
+        pjUpdateLabels();
+      });
+      document.getElementById('pj-gSlider').addEventListener('input', () => {
+        pj.g = parseFloat(document.getElementById('pj-gSlider').value);
+        pjUpdateLabels();
+      });
+      document.getElementById('pj-wallXSlider').addEventListener('input', () => {
+        pj.wallX = parseFloat(document.getElementById('pj-wallXSlider').value);
+        pjUpdateLabels();
+      });
+      document.getElementById('pj-wallHSlider').addEventListener('input', () => {
+        pj.wallH = parseFloat(document.getElementById('pj-wallHSlider').value);
+        pjUpdateLabels();
+      });
+      document.getElementById('pj-addWallBtn').addEventListener('click', () => {
+        pj.walls.push({ x: pj.wallX, h: pj.wallH });
+        pjUpdateLabels();
+      });
+      document.getElementById('pj-clearWallsBtn').addEventListener('click', () => {
+        pj.walls = [];
+        pjUpdateLabels();
+      });
+      document.getElementById('pj-speedSlider').addEventListener('input', () => {
+        pj.speed = parseFloat(document.getElementById('pj-speedSlider').value);
+        pjUpdateLabels();
+      });
+      document.getElementById('pj-launchBtn').addEventListener('click', () => {
+        if (!pj.launched) pjLaunch();
+      });
+      document.getElementById('pj-resetBtn').addEventListener('click', () => {
+        pj.launched = false;
+        pj.trail = [];
+        document.getElementById('pj-statusLabel').textContent = 'Ready';
+        document.getElementById('pj-statusDot').classList.remove('paused');
+      });
+
+      function pjUpdateLabels() {
+        document.getElementById('pj-v0Value').textContent = pj.v0.toFixed(0) + ' m/s';
+        document.getElementById('pj-angleValue').textContent = (pj.angle * 180 / Math.PI).toFixed(0) + '°';
+        document.getElementById('pj-gValue').textContent = pj.g.toFixed(0) + ' m/s²';
+        document.getElementById('pj-wallXValue').textContent = pj.wallX.toFixed(0) + ' m';
+        document.getElementById('pj-wallHValue').textContent = pj.wallH.toFixed(0) + ' m';
+        document.getElementById('pj-speedValue').textContent = pj.speed.toFixed(2) + '×';
+        const summary = document.getElementById('pj-wallsSummary');
+        if (summary) {
+          if (!pj.walls.length) {
+            summary.textContent = 'No walls added.';
+          } else {
+            const parts = pj.walls.map((w, i) => `Wall ${i + 1}: x = ${w.x.toFixed(1)} m, h = ${w.h.toFixed(1)} m`);
+            summary.textContent = parts.join(' | ');
+          }
+        }
+        const R = (pj.v0 * pj.v0 * Math.sin(2 * pj.angle)) / pj.g;
+        const H = (pj.v0 * pj.v0 * Math.sin(pj.angle) * Math.sin(pj.angle)) / (2 * pj.g);
+        document.getElementById('pj-derivedRange').innerHTML = '\\[R = \\frac{v_0^2 \\sin(2\\theta)}{g} \\approx ' + R.toFixed(1) + '\\,\\text{m}\\]';
+        document.getElementById('pj-derivedMaxH').innerHTML = '\\[H = \\frac{v_0^2 \\sin^2\\theta}{2g} \\approx ' + H.toFixed(1) + '\\,\\text{m}\\]';
+        if (window.MathJax && window.MathJax.typesetPromise) {
+          window.MathJax.typesetPromise([document.getElementById('pj-derivedRange'), document.getElementById('pj-derivedMaxH')]).catch(() => {});
+        }
+      }
+
+      function pjDraw() {
+        const w = pjCanvas.getBoundingClientRect().width;
+        const h = pjCanvas.getBoundingClientRect().height;
+        if (w <= 0 || h <= 0) return;
+        pjCtx.clearRect(0, 0, w, h);
+
+        pjCtx.save();
+        pjCtx.translate(w / 2, h / 2);
+        pjCtx.scale(uiZoom, uiZoom);
+        pjCtx.translate(-w / 2, -h / 2);
+
+        const pad = 40;
+        const maxX = Math.max(50, (pj.v0 * pj.v0 * Math.sin(2 * pj.angle)) / pj.g * 1.2);
+        const maxY = Math.max(30, (pj.v0 * pj.v0 * Math.sin(pj.angle) ** 2) / (2 * pj.g) * 1.3);
+        const scaleX = (w - 2 * pad) / maxX;
+        const scaleY = (h - 2 * pad) / maxY;
+        const scale = Math.min(scaleX, scaleY);
+
+        const toScreen = (x, y) => ({
+          x: pad + x * scale,
+          y: h - pad - y * scale
+        });
+
+        pjCtx.strokeStyle = 'rgba(148,163,184,0.5)';
+        pjCtx.lineWidth = 1;
+        for (let i = 0; i <= maxX; i += 10) {
+          const p = toScreen(i, 0);
+          pjCtx.beginPath();
+          pjCtx.moveTo(p.x, p.y);
+          pjCtx.lineTo(p.x, h);
+          pjCtx.stroke();
+        }
+        for (let i = 0; i <= maxY; i += 10) {
+          const p = toScreen(0, i);
+          pjCtx.beginPath();
+          pjCtx.moveTo(p.x, p.y);
+          pjCtx.lineTo(w, p.y);
+          pjCtx.stroke();
+        }
+
+        // draw walls
+        pj.walls.forEach(wall => {
+          const base = toScreen(wall.x, 0);
+          const top = toScreen(wall.x, wall.h);
+          const screenWidth = Math.max(4, 0.5 * scale); // about 0.5 m wide
+          pjCtx.fillStyle = 'rgba(148,163,184,0.85)';
+          pjCtx.strokeStyle = 'rgba(15,23,42,0.9)';
+          pjCtx.lineWidth = 1.5;
+          pjCtx.beginPath();
+          pjCtx.roundRect(base.x - screenWidth / 2, top.y, screenWidth, base.y - top.y, 3);
+          pjCtx.fill();
+          pjCtx.stroke();
+        });
+
+        if (pj.trail.length > 1) {
+          pjCtx.strokeStyle = 'rgba(56,189,248,0.8)';
+          pjCtx.lineWidth = 2;
+          pjCtx.beginPath();
+          const p0 = toScreen(pj.trail[0].x, pj.trail[0].y);
+          pjCtx.moveTo(p0.x, p0.y);
+          for (let i = 1; i < pj.trail.length; i++) {
+            const p = toScreen(pj.trail[i].x, pj.trail[i].y);
+            pjCtx.lineTo(p.x, p.y);
+          }
+          pjCtx.stroke();
+        }
+
+        if (pj.launched) {
+          const p = toScreen(pj.x, pj.y);
+          pjCtx.fillStyle = 'rgba(56,189,248,0.95)';
+          pjCtx.strokeStyle = 'rgba(56,189,248,1)';
+          pjCtx.lineWidth = 2;
+          pjCtx.beginPath();
+          pjCtx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+          pjCtx.fill();
+          pjCtx.stroke();
+        }
+        pjCtx.restore();
+      }
+
+      function pjAnimate(t) {
+        if (document.getElementById('panel-projectile').classList.contains('active')) {
+          if (pj.launched) {
+            const dt = 0.02 * pj.speed;
+            const oldX = pj.x;
+            const oldY = pj.y;
+            pj.x += pj.vx * dt;
+            pj.y += pj.vy * dt;
+            pj.vy -= pj.g * dt;
+            pj.t += dt;
+
+            // check collision with walls (line segment from y=0 to y=wall.h)
+            let hitWall = false;
+            let hitX = pj.x;
+            let hitY = pj.y;
+            pj.walls.forEach(wall => {
+              if (hitWall) return;
+              if ((oldX <= wall.x && pj.x >= wall.x) || (oldX >= wall.x && pj.x <= wall.x)) {
+                const alpha = (wall.x - oldX) / (pj.x - oldX || 1e-6);
+                const yAtWall = oldY + (pj.y - oldY) * alpha;
+                if (yAtWall >= 0 && yAtWall <= wall.h) {
+                  hitWall = true;
+                  hitX = wall.x;
+                  hitY = yAtWall;
+                }
+              }
+            });
+
+            if (hitWall) {
+              pj.x = hitX;
+              pj.y = hitY;
+              pj.launched = false;
+              document.getElementById('pj-statusLabel').textContent = 'Hit wall';
+              document.getElementById('pj-statusDot').classList.add('paused');
+            } else if (pj.y < 0) {
+              pj.launched = false;
+              document.getElementById('pj-statusLabel').textContent = 'Landed';
+              document.getElementById('pj-statusDot').classList.add('paused');
+            }
+
+            pj.trail.push({ x: pj.x, y: pj.y });
+            document.getElementById('pj-rangeValue').textContent = pj.x.toFixed(1);
+            document.getElementById('pj-currentState').innerHTML =
+              '\\(x = ' + pj.x.toFixed(1) + '\\,\\text{m},\\quad y = ' + pj.y.toFixed(1) + '\\,\\text{m},\\quad t = ' + pj.t.toFixed(2) + '\\,\\text{s}\\)';
+            if (window.MathJax && window.MathJax.typesetPromise) {
+              window.MathJax.typesetPromise([document.getElementById('pj-currentState')]).catch(() => {});
+            }
+          }
+          pjDraw();
+        }
+        requestAnimationFrame(pjAnimate);
+      }
+      pjUpdateLabels();
+      pjAnimate(0);
+
+      // ========== Waves ==========
+      const wvCanvas = document.getElementById('wv-canvas');
+      const wvCtx = wvCanvas.getContext('2d');
+
+      function wvResize() {
+        const rect = wvCanvas.getBoundingClientRect();
+        const scale = window.devicePixelRatio || 1;
+        wvCanvas.width = rect.width * scale;
+        wvCanvas.height = rect.height * scale;
+        wvCtx.setTransform(scale, 0, 0, scale, 0, 0);
+      }
+      window.addEventListener('resize', wvResize);
+      wvResize();
+
+      let wv = {
+        amp: 20,
+        lambda: 80,
+        freq: 1.5,
+        time: 0,
+        running: true,
+        mode: 'traveling',
+        speed: 1.0,
+        highlightMode: 'none',
+        highlightPos: 0.25
+      };
+
+      document.getElementById('wv-ampSlider').addEventListener('input', () => {
+        wv.amp = parseFloat(document.getElementById('wv-ampSlider').value);
+        wvUpdateLabels();
+      });
+      document.getElementById('wv-lambdaSlider').addEventListener('input', () => {
+        wv.lambda = parseFloat(document.getElementById('wv-lambdaSlider').value);
+        wvUpdateLabels();
+      });
+      document.getElementById('wv-freqSlider').addEventListener('input', () => {
+        wv.freq = parseFloat(document.getElementById('wv-freqSlider').value);
+        wvUpdateLabels();
+      });
+      document.getElementById('wv-speedSlider').addEventListener('input', () => {
+        wv.speed = parseFloat(document.getElementById('wv-speedSlider').value);
+        wvUpdateLabels();
+      });
+      document.getElementById('wv-highlightPosSlider').addEventListener('input', () => {
+        wv.highlightPos = parseFloat(document.getElementById('wv-highlightPosSlider').value);
+        wvUpdateLabels();
+      });
+      document.getElementById('wv-playPauseBtn').addEventListener('click', () => {
+        wv.running = !wv.running;
+        document.getElementById('wv-playPauseBtn').textContent = wv.running ? 'Pause' : 'Play';
+        document.getElementById('wv-statusLabel').textContent = wv.running ? 'Running' : 'Paused';
+        document.getElementById('wv-statusDot').classList.toggle('paused', !wv.running);
+      });
+      document.querySelectorAll('#panel-waves .toggle[data-preset]').forEach(t => {
+        t.addEventListener('click', () => {
+          document.querySelectorAll('#panel-waves .toggle').forEach(o => o.dataset.active = 'false');
+          t.dataset.active = 'true';
+          wv.mode = t.dataset.preset;
+          document.getElementById('wv-modeLabel').textContent = wv.mode === 'traveling' 
+            ? 'Traveling wave: \\(y = A\\sin(kx - \\omega t)\\)' 
+            : 'Standing wave: \\(y = 2A\\sin(kx)\\cos(\\omega t)\\)';
+          if (window.MathJax && window.MathJax.typesetPromise) {
+            window.MathJax.typesetPromise([document.getElementById('wv-modeLabel')]).catch(() => {});
+          }
+        });
+      });
+      document.querySelector('#panel-waves .toggle[data-preset="traveling"]').dataset.active = 'true';
+
+      // Highlight mode toggles (waves)
+      document.querySelectorAll('#panel-waves .toggle[data-highlight]').forEach(t => {
+        t.addEventListener('click', () => {
+          document.querySelectorAll('#panel-waves .toggle[data-highlight]').forEach(o => o.dataset.active = 'false');
+          t.dataset.active = 'true';
+          wv.highlightMode = t.dataset.highlight;
+        });
+      });
+      const wvHighlightOff = document.querySelector('#panel-waves .toggle[data-highlight="none"]');
+      if (wvHighlightOff) wvHighlightOff.dataset.active = 'true';
+
+      function wvUpdateLabels() {
+        document.getElementById('wv-ampValue').textContent = wv.amp + ' px';
+        document.getElementById('wv-lambdaValue').textContent = wv.lambda + ' px';
+        document.getElementById('wv-freqValue').textContent = wv.freq.toFixed(1) + ' Hz';
+        const speed = wv.lambda * wv.freq / 100;
+        document.getElementById('wv-speedValue').textContent = speed.toFixed(1) + ' px/s';
+        document.getElementById('wv-speedFactorValue').textContent = wv.speed.toFixed(2) + '×';
+        document.getElementById('wv-highlightPosValue').textContent = (wv.highlightPos * 100).toFixed(0) + '%';
+      }
+
+      function wvDraw() {
+        const w = wvCanvas.getBoundingClientRect().width;
+        const h = wvCanvas.getBoundingClientRect().height;
+        wvCtx.clearRect(0, 0, w, h);
+
+        wvCtx.save();
+        wvCtx.translate(w / 2, h / 2);
+        wvCtx.scale(uiZoom, uiZoom);
+        wvCtx.translate(-w / 2, -h / 2);
+
+        const k = 2 * Math.PI / wv.lambda;
+        const omega = 2 * Math.PI * wv.freq;
+        const centerY = h / 2;
+
+        wvCtx.strokeStyle = 'rgba(148,163,184,0.5)';
+        wvCtx.lineWidth = 1;
+        wvCtx.beginPath();
+        wvCtx.moveTo(0, centerY);
+        wvCtx.lineTo(w, centerY);
+        wvCtx.stroke();
+
+        wvCtx.strokeStyle = 'rgba(56,189,248,0.9)';
+        wvCtx.lineWidth = 2;
+        wvCtx.beginPath();
+        for (let px = 0; px <= w; px += 2) {
+          let y;
+          if (wv.mode === 'traveling') {
+            y = wv.amp * Math.sin(k * px - omega * wv.time);
+          } else {
+            y = 2 * wv.amp * Math.sin(k * px) * Math.cos(omega * wv.time);
+          }
+          const py = centerY - y;
+          if (px === 0) wvCtx.moveTo(px, py);
+          else wvCtx.lineTo(px, py);
+        }
+        wvCtx.stroke();
+
+        // Highlight points
+        const highlightXs = [];
+        if (wv.highlightMode === 'single') {
+          highlightXs.push(w * wv.highlightPos);
+        } else if (wv.highlightMode === 'per-wavelength') {
+          const lambdaPx = wv.lambda;
+          if (lambdaPx > 0) {
+            for (let px = 0; px <= w; px += lambdaPx) {
+              highlightXs.push(px);
+            }
+          }
+        }
+
+        if (highlightXs.length > 0) {
+          wvCtx.strokeStyle = 'rgba(248,250,252,0.5)';
+          wvCtx.fillStyle = 'rgba(248,250,252,0.95)';
+          wvCtx.lineWidth = 1;
+          highlightXs.forEach(px => {
+            let y;
+            if (wv.mode === 'traveling') {
+              y = wv.amp * Math.sin(k * px - omega * wv.time);
+            } else {
+              y = 2 * wv.amp * Math.sin(k * px) * Math.cos(omega * wv.time);
+            }
+            const py = centerY - y;
+            // vertical guide
+            wvCtx.beginPath();
+            wvCtx.setLineDash([4, 4]);
+            wvCtx.moveTo(px, centerY);
+            wvCtx.lineTo(px, py);
+            wvCtx.stroke();
+            wvCtx.setLineDash([]);
+            // point marker
+            wvCtx.beginPath();
+            wvCtx.arc(px, py, 4, 0, Math.PI * 2);
+            wvCtx.fill();
+          });
+        }
+        wvCtx.restore();
+      }
+
+      function wvAnimate(t) {
+        if (document.getElementById('panel-waves').classList.contains('active')) {
+          if (wv.running) wv.time += 0.02 * wv.speed;
+          wvDraw();
+        }
+        requestAnimationFrame(wvAnimate);
+      }
+      wvUpdateLabels();
+      wvAnimate(0);
+
+      // ========== Electric Field ==========
+      const efCanvas = document.getElementById('ef-canvas');
+      const efCtx = efCanvas.getContext('2d');
+
+      function efResize() {
+        const rect = efCanvas.getBoundingClientRect();
+        const scale = window.devicePixelRatio || 1;
+        efCanvas.width = rect.width * scale;
+        efCanvas.height = rect.height * scale;
+        efCtx.setTransform(scale, 0, 0, scale, 0, 0);
+      }
+      window.addEventListener('resize', efResize);
+      efResize();
+
+      let ef = {
+        q1: 1,
+        q2: -0.5,
+        sep: 2,
+        newQ: 1,
+        charges: [],
+        mode: 'move',
+        offsetX: 0,
+        offsetY: 0
+      };
+
+      function efEnsureCharges() {
+        if (ef.charges.length === 0) {
+          const half = ef.sep / 2;
+          ef.charges = [
+            { q: ef.q1, x: -half, y: 0 },
+            { q: ef.q2, x: half, y: 0 }
+          ];
+        } else {
+          ef.charges[0].q = ef.q1;
+          if (ef.charges[1]) ef.charges[1].q = ef.q2;
+        }
+      }
+
+      document.getElementById('ef-q1Slider').addEventListener('input', () => {
+        ef.q1 = parseFloat(document.getElementById('ef-q1Slider').value);
+        efUpdateLabels();
+      });
+      document.getElementById('ef-q2Slider').addEventListener('input', () => {
+        ef.q2 = parseFloat(document.getElementById('ef-q2Slider').value);
+        efUpdateLabels();
+      });
+      document.getElementById('ef-sepSlider').addEventListener('input', () => {
+        ef.sep = parseFloat(document.getElementById('ef-sepSlider').value);
+        const half = ef.sep / 2;
+        efEnsureCharges();
+        ef.charges[0].x = -half;
+        ef.charges[0].y = 0;
+        if (ef.charges[1]) {
+          ef.charges[1].x = half;
+          ef.charges[1].y = 0;
+        }
+        efUpdateLabels();
+      });
+      document.getElementById('ef-newQSlider').addEventListener('input', () => {
+        ef.newQ = parseFloat(document.getElementById('ef-newQSlider').value);
+        efUpdateLabels();
+      });
+      document.getElementById('ef-clearExtraBtn').addEventListener('click', () => {
+        efEnsureCharges();
+        ef.charges = ef.charges.slice(0, 2);
+      });
+
+      // Interaction mode toggles for electric field
+      document.querySelectorAll('#panel-electric .toggle[data-ef-mode]').forEach(t => {
+        t.addEventListener('click', () => {
+          document.querySelectorAll('#panel-electric .toggle[data-ef-mode]').forEach(o => o.dataset.active = 'false');
+          t.dataset.active = 'true';
+          ef.mode = t.dataset.efMode || t.getAttribute('data-ef-mode');
+        });
+      });
+      const efDefaultModeBtn = document.querySelector('#panel-electric .toggle[data-ef-mode="move"]');
+      if (efDefaultModeBtn) efDefaultModeBtn.dataset.active = 'true';
+
+      function efUpdateLabels() {
+        efEnsureCharges();
+        document.getElementById('ef-q1Value').textContent = (ef.q1 >= 0 ? '+' : '') + ef.q1.toFixed(1) + ' q';
+        document.getElementById('ef-q2Value').textContent = (ef.q2 >= 0 ? '+' : '') + ef.q2.toFixed(1) + ' q';
+        document.getElementById('ef-sepValue').textContent = ef.sep.toFixed(1) + ' units';
+        document.getElementById('ef-newQValue').textContent = (ef.newQ >= 0 ? '+' : '') + ef.newQ.toFixed(1) + ' q';
+        const label = document.getElementById('ef-configLabel');
+        if (label) {
+          let modeLabel = '';
+          if (ef.mode === 'add') modeLabel = 'Add charge';
+          else if (ef.mode === 'remove') modeLabel = 'Remove charge';
+          else if (ef.mode === 'move') modeLabel = 'Move charge';
+          else if (ef.mode === 'pan') modeLabel = 'Move screen';
+          label.textContent = `Charges: ${ef.charges.length}  •  Mode: ${modeLabel}`;
+        }
+      }
+
+      function efFieldTotal(wx, wy) {
+        let Ex = 0;
+        let Ey = 0;
+        ef.charges.forEach(c => {
+          const dx = wx - c.x;
+          const dy = wy - c.y;
+          const r2 = dx * dx + dy * dy + 1e-3;
+          const r = Math.sqrt(r2);
+          const E = c.q / r2;
+          Ex += E * dx / r;
+          Ey += E * dy / r;
+        });
+        return { Ex, Ey };
+      }
+
+      let efDraggingIndex = -1;
+      let efPanning = false;
+      let efPanLastX = 0;
+      let efPanLastY = 0;
+
+      efCanvas.addEventListener('mousedown', (e) => {
+        const rect = efCanvas.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        const cx = w / 2;
+        const cy = h / 2;
+        const scale = Math.min(w, h) / 8;
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        efEnsureCharges();
+        // Check if clicking near an existing charge
+        let found = -1;
+        ef.charges.forEach((c, idx) => {
+          const sx = cx + (c.x - ef.offsetX) * scale;
+          const sy = cy - (c.y - ef.offsetY) * scale;
+          const d = Math.hypot(mx - sx, my - sy);
+          if (d < 18) found = idx;
+        });
+
+        if (ef.mode === 'move') {
+          if (found >= 0) {
+            efDraggingIndex = found;
+          }
+        } else if (ef.mode === 'add') {
+          const wx = (mx - cx) / scale + ef.offsetX;
+          const wy = (cy - my) / scale + ef.offsetY;
+          ef.charges.push({ q: ef.newQ, x: wx, y: wy });
+          efUpdateLabels();
+        } else if (ef.mode === 'remove') {
+          // Only allow removing charges beyond the first two base charges
+          if (found >= 2) {
+            ef.charges.splice(found, 1);
+            efUpdateLabels();
+          }
+        } else if (ef.mode === 'pan') {
+          efPanning = true;
+          efPanLastX = mx;
+          efPanLastY = my;
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        efDraggingIndex = -1;
+        efPanning = false;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        const rect = efCanvas.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        const cx = w / 2;
+        const cy = h / 2;
+        const scale = Math.min(w, h) / 8;
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        if (efDraggingIndex >= 0 && ef.mode === 'move') {
+          const wx = (mx - cx) / scale + ef.offsetX;
+          const wy = (cy - my) / scale + ef.offsetY;
+          ef.charges[efDraggingIndex].x = wx;
+          ef.charges[efDraggingIndex].y = wy;
+        } else if (efPanning && ef.mode === 'pan') {
+          const dx = mx - efPanLastX;
+          const dy = my - efPanLastY;
+          efPanLastX = mx;
+          efPanLastY = my;
+          // Convert screen delta to world offset
+          ef.offsetX -= dx / scale;
+          ef.offsetY += dy / scale;
+        }
+      });
+
+      function efDraw() {
+        const w = efCanvas.getBoundingClientRect().width;
+        const h = efCanvas.getBoundingClientRect().height;
+        efCtx.clearRect(0, 0, w, h);
+
+        const scale = Math.min(w, h) / 8;
+        const cx = w / 2;
+        const cy = h / 2;
+        efEnsureCharges();
+
+        // Field lines (streamlines) from each charge
+        const stepsPerLine = 80;
+        const seedsPerCharge = 8;
+        const startRadiusWorld = 0.4;
+        const stepWorld = 0.2;
+
+        ef.charges.forEach(c => {
+          for (let i = 0; i < seedsPerCharge; i++) {
+            const angle = (i / seedsPerCharge) * 2 * Math.PI;
+            let wx = c.x + startRadiusWorld * Math.cos(angle);
+            let wy = c.y + startRadiusWorld * Math.sin(angle);
+            let px = cx + (wx - ef.offsetX) * scale;
+            let py = cy - (wy - ef.offsetY) * scale;
+            for (let step = 0; step < stepsPerLine; step++) {
+              const field = efFieldTotal(wx, wy);
+              let Ex = field.Ex;
+              let Ey = field.Ey;
+              let mag = Math.sqrt(Ex * Ex + Ey * Ey);
+              if (mag < 1e-3) break;
+              Ex /= mag;
+              Ey /= mag;
+              // step in world coordinates
+              wx += Ex * stepWorld;
+              wy += Ey * stepWorld;
+              const nx = cx + (wx - ef.offsetX) * scale;
+              const ny = cy - (wy - ef.offsetY) * scale;
+              if (nx < 0 || nx > w || ny < 0 || ny > h) break;
+              // stop near any charge
+              let tooClose = false;
+              ef.charges.forEach(c2 => {
+                if (tooClose) return;
+                const sx = cx + (c2.x - ef.offsetX) * scale;
+                const sy = cy - (c2.y - ef.offsetY) * scale;
+                if (Math.hypot(nx - sx, ny - sy) < 12) tooClose = true;
+              });
+              if (tooClose) break;
+              efCtx.strokeStyle = 'rgba(56,189,248,0.5)';
+              efCtx.lineWidth = 1;
+              efCtx.beginPath();
+              efCtx.moveTo(px, py);
+              efCtx.lineTo(nx, ny);
+              efCtx.stroke();
+              px = nx;
+              py = ny;
+            }
+          }
+        });
+
+        const gridStep = 40;
+        for (let gx = gridStep; gx < w; gx += gridStep) {
+          for (let gy = gridStep; gy < h; gy += gridStep) {
+            const wx = (gx - cx) / scale + ef.offsetX;
+            const wy = (cy - gy) / scale + ef.offsetY;
+            const field = efFieldTotal(wx, wy);
+            let Ex = field.Ex;
+            let Ey = field.Ey;
+            const mag = Math.sqrt(Ex * Ex + Ey * Ey);
+            if (mag < 0.1) continue;
+            Ex /= mag;
+            Ey /= mag;
+            const len = Math.min(25, mag * 8);
+            efCtx.strokeStyle = 'rgba(56,189,248,0.8)';
+            efCtx.lineWidth = 1.5;
+            efCtx.beginPath();
+            efCtx.moveTo(gx, gy);
+            efCtx.lineTo(gx + Ex * len, gy - Ey * len);
+            efCtx.stroke();
+          }
+        }
+
+        // Draw charges
+        ef.charges.forEach(c => {
+          const sx = cx + (c.x - ef.offsetX) * scale;
+          const sy = cy - (c.y - ef.offsetY) * scale;
+          efCtx.fillStyle = c.q > 0 ? 'rgba(249,115,22,0.9)' : 'rgba(56,189,248,0.9)';
+          efCtx.strokeStyle = 'rgba(255,255,255,0.9)';
+          efCtx.lineWidth = 2;
+          efCtx.beginPath();
+          efCtx.arc(sx, sy, 14, 0, Math.PI * 2);
+          efCtx.fill();
+          efCtx.stroke();
+          efCtx.fillStyle = '#000';
+          efCtx.font = 'bold 12px system-ui';
+          efCtx.textAlign = 'center';
+          efCtx.fillText(c.q > 0 ? '+' : '−', sx, sy + 4);
+        });
+      }
+
+      function efAnimate() {
+        if (document.getElementById('panel-electric').classList.contains('active')) {
+          efDraw();
+        }
+        requestAnimationFrame(efAnimate);
+      }
+      efUpdateLabels();
+      efAnimate();
+
+      // ========== Simple Pendulum ==========
+      const peCanvas = document.getElementById('pe-canvas');
+      const peCtx = peCanvas.getContext('2d');
+
+      function peResize() {
+        const rect = peCanvas.getBoundingClientRect();
+        const scale = window.devicePixelRatio || 1;
+        peCanvas.width = rect.width * scale;
+        peCanvas.height = rect.height * scale;
+        peCtx.setTransform(scale, 0, 0, scale, 0, 0);
+      }
+      window.addEventListener('resize', peResize);
+      peResize();
+
+      let pe = {
+        L: 1.5,
+        g: 9.8,
+        theta: 0.6,
+        omega: 0,
+        damping: 0.05,
+        running: true,
+        speed: 1.0,
+        time: 0
+      };
+
+      document.getElementById('pe-LSlider').addEventListener('input', () => {
+        pe.L = parseFloat(document.getElementById('pe-LSlider').value);
+        peUpdateLabels();
+      });
+      document.getElementById('pe-gSlider').addEventListener('input', () => {
+        pe.g = parseFloat(document.getElementById('pe-gSlider').value);
+        peUpdateLabels();
+      });
+      document.getElementById('pe-dampSlider').addEventListener('input', () => {
+        pe.damping = parseFloat(document.getElementById('pe-dampSlider').value);
+        peUpdateLabels();
+      });
+      document.getElementById('pe-speedSlider').addEventListener('input', () => {
+        pe.speed = parseFloat(document.getElementById('pe-speedSlider').value);
+        peUpdateLabels();
+      });
+      document.getElementById('pe-playPauseBtn').addEventListener('click', () => {
+        pe.running = !pe.running;
+        document.getElementById('pe-playPauseBtn').textContent = pe.running ? 'Pause' : 'Play';
+        document.getElementById('pe-statusLabel').textContent = pe.running ? 'Running' : 'Paused';
+        document.getElementById('pe-statusDot').classList.toggle('paused', !pe.running);
+      });
+      document.getElementById('pe-resetBtn').addEventListener('click', () => {
+        pe.theta = 0.6;
+        pe.omega = 0;
+        pe.time = 0;
+      });
+
+      function peGeometry() {
+        const w = peCanvas.getBoundingClientRect().width;
+        const h = peCanvas.getBoundingClientRect().height;
+        const pivotX = w / 2;
+        const pivotY = h * 0.18;
+        const maxLengthWorld = 3.0;
+        const maxPixelLength = h * 0.55;
+        const scaleL = maxPixelLength / maxLengthWorld;
+        const rodLength = pe.L * scaleL;
+        return { w, h, pivotX, pivotY, rodLength, scaleL };
+      }
+
+      let peDragging = false;
+      peCanvas.addEventListener('mousedown', (e) => {
+        const rect = peCanvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const { pivotX, pivotY, rodLength } = peGeometry();
+        const bx = pivotX + rodLength * Math.sin(pe.theta);
+        const by = pivotY + rodLength * Math.cos(pe.theta);
+        const d = Math.hypot(mx - bx, my - by);
+        if (d < 20) {
+          peDragging = true;
+        }
+      });
+      window.addEventListener('mouseup', () => {
+        peDragging = false;
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!peDragging) return;
+        const rect = peCanvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const { pivotX, pivotY } = peGeometry();
+        const dx = mx - pivotX;
+        const dy = my - pivotY;
+        pe.theta = Math.atan2(dx, dy);
+        pe.omega = 0;
+      });
+
+      function peUpdateLabels() {
+        document.getElementById('pe-LValue').textContent = pe.L.toFixed(2) + ' m';
+        document.getElementById('pe-gValue').textContent = pe.g.toFixed(1) + ' m/s²';
+        document.getElementById('pe-dampValue').textContent = pe.damping.toFixed(2);
+        document.getElementById('pe-speedValue').textContent = pe.speed.toFixed(2) + '×';
+        const T = 2 * Math.PI * Math.sqrt(pe.L / pe.g);
+        document.getElementById('pe-periodValue').textContent = T.toFixed(2) + ' s (small angle)';
+        document.getElementById('pe-periodEq').innerHTML =
+          '\\[T \\approx 2\\pi \\sqrt{\\frac{L}{g}} \\approx ' + T.toFixed(2) + '\\,\\text{s}\\]';
+        if (window.MathJax && window.MathJax.typesetPromise) {
+          window.MathJax.typesetPromise([document.getElementById('pe-periodEq')]).catch(() => {});
+        }
+      }
+
+      function peStep(dt) {
+        const bOverM = pe.damping;
+        const alpha = -(bOverM) * pe.omega - (pe.g / pe.L) * Math.sin(pe.theta);
+        pe.omega += alpha * dt;
+        pe.theta += pe.omega * dt;
+        pe.time += dt;
+      }
+
+      function peDraw() {
+        const geo = peGeometry();
+        const { w, h, pivotX, pivotY, rodLength } = geo;
+        peCtx.clearRect(0, 0, w, h);
+
+        peCtx.save();
+        peCtx.translate(w / 2, h / 2);
+        peCtx.scale(uiZoom, uiZoom);
+        peCtx.translate(-w / 2, -h / 2);
+
+        peCtx.strokeStyle = 'rgba(148,163,184,0.6)';
+        peCtx.lineWidth = 1;
+        peCtx.beginPath();
+        peCtx.moveTo(0, pivotY + 8);
+        peCtx.lineTo(w, pivotY + 8);
+        peCtx.stroke();
+
+        const bx = pivotX + rodLength * Math.sin(pe.theta);
+        const by = pivotY + rodLength * Math.cos(pe.theta);
+
+        peCtx.strokeStyle = 'rgba(148,163,184,0.9)';
+        peCtx.lineWidth = 3;
+        peCtx.beginPath();
+        peCtx.moveTo(pivotX, pivotY);
+        peCtx.lineTo(bx, by);
+        peCtx.stroke();
+
+        peCtx.fillStyle = 'rgba(148,163,184,0.95)';
+        peCtx.beginPath();
+        peCtx.arc(pivotX, pivotY, 5, 0, Math.PI * 2);
+        peCtx.fill();
+
+        peCtx.fillStyle = 'rgba(56,189,248,0.95)';
+        peCtx.strokeStyle = 'rgba(15,23,42,0.9)';
+        peCtx.lineWidth = 2;
+        peCtx.beginPath();
+        peCtx.arc(bx, by, 14, 0, Math.PI * 2);
+        peCtx.fill();
+        peCtx.stroke();
+
+        peCtx.fillStyle = 'rgba(56,189,248,0.5)';
+        peCtx.font = '12px system-ui';
+        peCtx.textAlign = 'left';
+        peCtx.fillText('g', pivotX + 8, pivotY + 40);
+
+        peCtx.restore();
+
+        const deg = pe.theta * 180 / Math.PI;
+        document.getElementById('pe-currentState').innerHTML =
+          '\\(\\theta = ' + deg.toFixed(1) + '^\\circ,\\; \\omega = ' + pe.omega.toFixed(2) + '\\,\\text{rad/s},\\; t = ' +
+          pe.time.toFixed(2) + '\\,\\text{s}\\)';
+        if (window.MathJax && window.MathJax.typesetPromise) {
+          window.MathJax.typesetPromise([document.getElementById('pe-currentState')]).catch(() => {});
+        }
+      }
+
+      function peAnimate() {
+        if (document.getElementById('panel-pendulum').classList.contains('active')) {
+          if (pe.running && !peDragging) {
+            const dt = 0.02 * pe.speed;
+            for (let i = 0; i < 3; i++) peStep(dt);
+          }
+          peDraw();
+        }
+        requestAnimationFrame(peAnimate);
+      }
+      peUpdateLabels();
+      peAnimate();
+
+      // ========== Lenses (Thin Lens Ray Diagram) ==========
+      const lnCanvas = document.getElementById('ln-canvas');
+      const lnCtx = lnCanvas.getContext('2d');
+
+      function lnResize() {
+        const rect = lnCanvas.getBoundingClientRect();
+        const scale = window.devicePixelRatio || 1;
+        lnCanvas.width = rect.width * scale;
+        lnCanvas.height = rect.height * scale;
+        lnCtx.setTransform(scale, 0, 0, scale, 0, 0);
+      }
+      window.addEventListener('resize', lnResize);
+      lnResize();
+
+      let ln = {
+        type: 'converging',
+        f: 3,
+        dO: 6,
+        hO: 2,
+        dI: 0,
+        m: 0,
+        hI: 0
+      };
+
+      document.querySelectorAll('#panel-lenses .toggle[data-ln-type]').forEach(t => {
+        t.addEventListener('click', () => {
+          document.querySelectorAll('#panel-lenses .toggle[data-ln-type]').forEach(o => o.dataset.active = 'false');
+          t.dataset.active = 'true';
+          ln.type = t.dataset.lnType || t.getAttribute('data-ln-type');
+          lnUpdateFromControls();
+        });
+      });
+      const lnConvBtn = document.querySelector('#panel-lenses .toggle[data-ln-type="converging"]');
+      if (lnConvBtn) lnConvBtn.dataset.active = 'true';
+
+      document.getElementById('ln-fSlider').addEventListener('input', () => {
+        lnUpdateFromControls();
+      });
+      document.getElementById('ln-doSlider').addEventListener('input', () => {
+        lnUpdateFromControls();
+      });
+      document.getElementById('ln-hoSlider').addEventListener('input', () => {
+        lnUpdateFromControls();
+      });
+
+      function lnUpdateFromControls() {
+        const fMag = parseFloat(document.getElementById('ln-fSlider').value);
+        ln.f = ln.type === 'converging' ? fMag : -fMag;
+        ln.dO = parseFloat(document.getElementById('ln-doSlider').value);
+        ln.hO = parseFloat(document.getElementById('ln-hoSlider').value);
+
+        let di;
+        if (Math.abs(ln.f) < 1e-3 || Math.abs(ln.dO) < 1e-3) {
+          di = Infinity;
+        } else {
+          const invDi = 1 / ln.f - 1 / ln.dO;
+          di = invDi === 0 ? Infinity : 1 / invDi;
+        }
+        ln.dI = di;
+        if (!isFinite(di)) {
+          ln.m = 0;
+          ln.hI = 0;
+        } else {
+          ln.m = -ln.dI / ln.dO;
+          ln.hI = ln.m * ln.hO;
+        }
+        lnUpdateLabels();
+      }
+
+      function lnUpdateLabels() {
+        document.getElementById('ln-fValue').textContent = ln.f.toFixed(2) + ' units';
+        document.getElementById('ln-doValue').textContent = ln.dO.toFixed(2) + ' units';
+        document.getElementById('ln-hoValue').textContent = ln.hO.toFixed(2) + ' units';
+        const diSpan = document.getElementById('ln-diValue');
+        if (!isFinite(ln.dI)) {
+          diSpan.textContent = '∞ (parallel rays)';
+        } else {
+          diSpan.textContent = ln.dI.toFixed(2) + ' units';
+        }
+        const eq = document.getElementById('ln-equation');
+        const diText = !isFinite(ln.dI) ? '\\infty' : ln.dI.toFixed(2);
+        eq.innerHTML =
+          '\\[\\frac{1}{f} = \\frac{1}{d_o} + \\frac{1}{d_i},\\quad f = ' +
+          ln.f.toFixed(2) + ',\\; d_o = ' + ln.dO.toFixed(2) + ',\\; d_i \\approx ' + diText + '\\]';
+        const magEq = document.getElementById('ln-magEq');
+        if (isFinite(ln.dI)) {
+          magEq.innerHTML =
+            '\\[m = -\\frac{d_i}{d_o} = ' + ln.m.toFixed(2) +
+            ',\\quad h_i \\approx ' + ln.hI.toFixed(2) + '\\text{ (same units as }h_o\\text{)}\\]';
+        } else {
+          magEq.innerHTML = '\\[m = -d_i/d_o,\\; d_i \\to \\infty\\]';
+        }
+        if (window.MathJax && window.MathJax.typesetPromise) {
+          window.MathJax.typesetPromise([eq, magEq]).catch(() => {});
+        }
+      }
+
+      function lnToScreen(x, y, w, h) {
+        const axisY = h / 2;
+        const worldHalfSpan = 14;
+        const scaleX = (w * 0.9) / (2 * worldHalfSpan);
+        const scaleY = (h * 0.7) / (2 * worldHalfSpan);
+        const scale = Math.min(scaleX, scaleY);
+        const lensX = w / 2;
+        const sx = lensX + x * scale;
+        const sy = axisY - y * scale;
+        return { x: sx, y: sy, scale, lensX, axisY };
+      }
+
+      function lnDraw() {
+        const rect = lnCanvas.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        if (w <= 0 || h <= 0) return;
+        lnCtx.clearRect(0, 0, w, h);
+
+        lnCtx.save();
+        lnCtx.translate(w / 2, h / 2);
+        lnCtx.scale(uiZoom, uiZoom);
+        lnCtx.translate(-w / 2, -h / 2);
+
+        const axisY = h / 2;
+        lnCtx.strokeStyle = 'rgba(148,163,184,0.7)';
+        lnCtx.lineWidth = 1.5;
+        lnCtx.beginPath();
+        lnCtx.moveTo(0, axisY);
+        lnCtx.lineTo(w, axisY);
+        lnCtx.stroke();
+
+        const lensTop = axisY - h * 0.3;
+        const lensBot = axisY + h * 0.3;
+        const lensX = w / 2;
+        const gradient = lnCtx.createLinearGradient(lensX - 10, axisY, lensX + 10, axisY);
+        if (ln.type === 'converging') {
+          gradient.addColorStop(0, 'rgba(56,189,248,0.15)');
+          gradient.addColorStop(1, 'rgba(56,189,248,0.45)');
+        } else {
+          gradient.addColorStop(0, 'rgba(148,163,184,0.45)');
+          gradient.addColorStop(1, 'rgba(15,23,42,0.9)');
+        }
+        lnCtx.fillStyle = gradient;
+        lnCtx.strokeStyle = 'rgba(148,163,184,0.9)';
+        lnCtx.lineWidth = 2;
+        lnCtx.beginPath();
+        lnCtx.moveTo(lensX, lensTop);
+        lnCtx.quadraticCurveTo(lensX + (ln.type === 'converging' ? 14 : -14), axisY, lensX, lensBot);
+        lnCtx.quadraticCurveTo(lensX + (ln.type === 'converging' ? -14 : 14), axisY, lensX, lensTop);
+        lnCtx.closePath();
+        lnCtx.fill();
+        lnCtx.stroke();
+
+        const worldHalfSpan = 14;
+        const scaleX = (w * 0.9) / (2 * worldHalfSpan);
+        const scaleY = (h * 0.7) / (2 * worldHalfSpan);
+        const scale = Math.min(scaleX, scaleY);
+
+        lnCtx.strokeStyle = 'rgba(248,250,252,0.7)';
+        lnCtx.lineWidth = 1;
+        ['+f', '-f'].forEach(sign => {
+          const s = sign === '+f' ? 1 : -1;
+          const fx = lensX + s * ln.f * scale;
+          const fy = axisY;
+          lnCtx.beginPath();
+          lnCtx.moveTo(fx, fy - 8);
+          lnCtx.lineTo(fx, fy + 8);
+          lnCtx.stroke();
+          lnCtx.fillStyle = 'rgba(248,250,252,0.8)';
+          lnCtx.font = '10px system-ui';
+          lnCtx.textAlign = 'center';
+          lnCtx.fillText(sign === '+f' ? 'F' : 'F\'', fx, fy + 18);
+        });
+
+        const objX = -ln.dO;
+        const objTopY = ln.hO;
+        const objBottomY = 0;
+        const objBase = lnToScreen(objX, objBottomY, w, h);
+        const objTop = lnToScreen(objX, objTopY, w, h);
+
+        lnCtx.strokeStyle = 'rgba(34,197,94,0.95)';
+        lnCtx.fillStyle = 'rgba(34,197,94,0.95)';
+        lnCtx.lineWidth = 2;
+        lnCtx.beginPath();
+        lnCtx.moveTo(objBase.x, objBase.y);
+        lnCtx.lineTo(objTop.x, objTop.y);
+        lnCtx.stroke();
+        lnCtx.beginPath();
+        lnCtx.moveTo(objTop.x, objTop.y);
+        lnCtx.lineTo(objTop.x - 6, objTop.y + 10);
+        lnCtx.lineTo(objTop.x + 6, objTop.y + 10);
+        lnCtx.closePath();
+        lnCtx.fill();
+
+        if (isFinite(ln.dI)) {
+          const imgX = ln.dI;
+          const imgBottomY = 0;
+          const imgTopY = ln.hI;
+          const imgBase = lnToScreen(imgX, imgBottomY, w, h);
+          const imgTop = lnToScreen(imgX, imgTopY, w, h);
+
+          lnCtx.strokeStyle = 'rgba(56,189,248,0.95)';
+          lnCtx.fillStyle = 'rgba(56,189,248,0.95)';
+          lnCtx.lineWidth = 2;
+          lnCtx.beginPath();
+          lnCtx.moveTo(imgBase.x, imgBase.y);
+          lnCtx.lineTo(imgTop.x, imgTop.y);
+          lnCtx.stroke();
+          lnCtx.beginPath();
+          lnCtx.moveTo(imgTop.x, imgTop.y);
+          lnCtx.lineTo(imgTop.x - 6, imgTop.y + (ln.hI >= 0 ? 10 : -10));
+          lnCtx.lineTo(imgTop.x + 6, imgTop.y + (ln.hI >= 0 ? 10 : -10));
+          lnCtx.closePath();
+          lnCtx.fill();
+        }
+
+        function drawRaySegment(x1, y1, x2, y2, style) {
+          lnCtx.strokeStyle = style;
+          lnCtx.lineWidth = 1.5;
+          lnCtx.beginPath();
+          lnCtx.moveTo(x1, y1);
+          lnCtx.lineTo(x2, y2);
+          lnCtx.stroke();
+        }
+
+        const objTopScreen = objTop;
+
+        const parallelEnd = { x: lensX, y: objTopScreen.y };
+        drawRaySegment(objTopScreen.x, objTopScreen.y, parallelEnd.x, parallelEnd.y, 'rgba(248,250,252,0.85)');
+        if (ln.type === 'converging') {
+          const focusY = axisY;
+          const focusX = lensX + ln.f * scale;
+          const dirX = focusX - parallelEnd.x;
+          const dirY = focusY - parallelEnd.y;
+          const rayLen = w;
+          const endX = parallelEnd.x + rayLen * (dirX / Math.hypot(dirX, dirY));
+          const endY = parallelEnd.y + rayLen * (dirY / Math.hypot(dirX, dirY));
+          drawRaySegment(parallelEnd.x, parallelEnd.y, endX, endY, 'rgba(248,250,252,0.6)');
+        } else {
+          const virtFocusX = lensX - ln.f * scale;
+          const virtFocusY = axisY;
+          const dirVX = virtFocusX - parallelEnd.x;
+          const dirVY = virtFocusY - parallelEnd.y;
+          const rayLen = w;
+          const extX = parallelEnd.x + rayLen * (dirVX / Math.hypot(dirVX, dirVY));
+          const extY = parallelEnd.y + rayLen * (dirVY / Math.hypot(dirVX, dirVY));
+          drawRaySegment(parallelEnd.x, parallelEnd.y, extX, extY, 'rgba(248,250,252,0.4)');
+          const dirRealX = parallelEnd.x - extX;
+          const dirRealY = parallelEnd.y - extY;
+          const realEndX = parallelEnd.x + rayLen * (dirRealX / Math.hypot(dirRealX, dirRealY));
+          const realEndY = parallelEnd.y + rayLen * (dirRealY / Math.hypot(dirRealX, dirRealY));
+          drawRaySegment(parallelEnd.x, parallelEnd.y, realEndX, realEndY, 'rgba(248,250,252,0.8)');
+        }
+
+        const centerRayEndX = lensX + (w * 0.5);
+        const slopeCenter = (axisY - objTopScreen.y) / (lensX - objTopScreen.x);
+        const centerAtLensY = axisY + slopeCenter * 0;
+        drawRaySegment(objTopScreen.x, objTopScreen.y, lensX, centerAtLensY, 'rgba(248,250,252,0.85)');
+        drawRaySegment(lensX, centerAtLensY, centerRayEndX, centerAtLensY + slopeCenter * (centerRayEndX - lensX), 'rgba(248,250,252,0.6)');
+
+        lnCtx.restore();
+      }
+
+      function lnAnimate() {
+        if (document.getElementById('panel-lenses').classList.contains('active')) {
+          lnDraw();
+        }
+        requestAnimationFrame(lnAnimate);
+      }
+      lnUpdateFromControls();
+      lnAnimate();
+    })();
+  </script>
+</body>
+</html>
