@@ -181,6 +181,24 @@ canvas{width:100%;height:100%;display:block;}
 .ans-formula{font-family:var(--mono);font-size:0.74rem;color:var(--accent);background:rgba(79,143,255,.07);border:1px solid rgba(79,143,255,.2);border-radius:5px;padding:7px 11px;margin:9px 0;display:block;line-height:1.6;}
 .ans-hint{font-size:0.72rem;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-style:italic;}
 .ans-no-results{color:var(--muted);font-size:0.78rem;text-align:center;padding:28px;}
+/* ── RESOURCE LINKS ── */
+.res-section-label{font-family:var(--mono);font-size:0.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:10px 0 6px;}
+.res-link{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);text-decoration:none;transition:background .12s;}
+.res-link:hover .res-title{color:var(--accent);}
+.res-link:last-child{border-bottom:none;}
+.res-icon{width:32px;height:32px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.res-icon.yt{background:rgba(255,50,50,.12);border:1px solid rgba(255,50,50,.3);}
+.res-icon.wiki{background:rgba(100,160,255,.08);border:1px solid rgba(100,160,255,.2);}
+.res-icon.notes{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);}
+.res-icon.sim{background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);}
+.res-meta{flex:1;min-width:0;}
+.res-title{font-size:0.76rem;color:var(--text);line-height:1.4;margin-bottom:2px;font-weight:500;}
+.res-sub{font-family:var(--mono);font-size:0.62rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.res-tag{font-family:var(--mono);font-size:0.58rem;padding:1px 6px;border-radius:3px;margin-left:5px;vertical-align:middle;}
+.res-tag.yt{background:rgba(255,50,50,.15);color:#ff6b6b;}
+.res-tag.wiki{background:rgba(100,160,255,.12);color:var(--accent);}
+.res-tag.free{background:rgba(52,211,153,.12);color:var(--accent3);}
+.tag-r{color:#ff6b6b;}
 
 @media(max-width:900px){
   .panel{flex-direction:column;}
@@ -488,6 +506,7 @@ mjx-container{font-size:0.9em!important;}
         <div class="qa-tab active" onclick="QA.setTab('questions')">❓ Questions</div>
         <div class="qa-tab" onclick="QA.setTab('derivations')">📐 Derivations</div>
         <div class="qa-tab" onclick="QA.setTab('glossary')">📚 Glossary</div>
+        <div class="qa-tab" onclick="QA.setTab('resources')">🔗 Resources</div>
       </div>
       <div id="qa-list"></div>
     </div>
@@ -746,6 +765,53 @@ var QA = (function(){
 
   var NAMES = {'mass-spring':'Mass–Spring','projectile':'Projectile','waves':'Waves','electric':'Electric Field'};
 
+  var RES = {
+    'mass-spring': [
+      {title:'Simple Harmonic Motion — 3Blue1Brown visual',url:'https://www.youtube.com/watch?v=U39RMUzCjiU',sub:'3Blue1Brown · Differential equations & SHM',type:'yt',section:'📺 Videos'},
+      {title:'Mass-Spring Oscillations — Khan Academy',url:'https://www.youtube.com/watch?v=oqBHBO8cqLI',sub:'Khan Academy · Springs & Hooke\'s Law',type:'yt',section:'📺 Videos'},
+      {title:'Damped Oscillations explained',url:'https://www.youtube.com/watch?v=99ZE2RGwqSM',sub:'Physics Online · Underdamped vs overdamped',type:'yt',section:'📺 Videos'},
+      {title:'SHM full lecture — Michel van Biezen',url:'https://www.youtube.com/watch?v=IRhDMCnGUFU',sub:'Michel van Biezen · Full SHM series',type:'yt',section:'📺 Videos'},
+      {title:'Simple Harmonic Motion — Wikipedia',url:'https://en.wikipedia.org/wiki/Simple_harmonic_motion',sub:'Wikipedia · Full theory with derivations',type:'wiki',section:'📖 References'},
+      {title:'Damping — Wikipedia',url:'https://en.wikipedia.org/wiki/Damping',sub:'Wikipedia · Damping ratio, types, applications',type:'wiki',section:'📖 References'},
+      {title:'HyperPhysics — Spring & SHM',url:'http://hyperphysics.phy-astr.gsu.edu/hbase/shm.html',sub:'HyperPhysics GSU · Concise reference with diagrams',type:'notes',section:'📖 References'},
+      {title:'MIT OpenCourseWare — Oscillations',url:'https://ocw.mit.edu/courses/8-03sc-physics-iii-vibrations-and-waves-fall-2016/',sub:'MIT OCW · Full course notes & problem sets',type:'notes',section:'📖 References'},
+      {title:'PhET — Masses & Springs simulator',url:'https://phet.colorado.edu/en/simulations/masses-and-springs',sub:'PhET Colorado · Interactive free simulation',type:'sim',section:'🔬 Interactive'},
+    ],
+    'projectile': [
+      {title:'Projectile Motion — Khan Academy',url:'https://www.youtube.com/watch?v=aY8z2qO44WA',sub:'Khan Academy · Full intro with examples',type:'yt',section:'📺 Videos'},
+      {title:'Deriving the range equation',url:'https://www.youtube.com/watch?v=LU2AzXkLRSw',sub:'The Organic Chemistry Tutor · Step-by-step derivation',type:'yt',section:'📺 Videos'},
+      {title:'Projectile Motion — Veritasium',url:'https://www.youtube.com/watch?v=p1DQQHevNoA',sub:'Veritasium · Intuitive explanation',type:'yt',section:'📺 Videos'},
+      {title:'Projectile at angles — Michel van Biezen',url:'https://www.youtube.com/watch?v=hKnXXQuRtbU',sub:'Michel van Biezen · Worked problems',type:'yt',section:'📺 Videos'},
+      {title:'Projectile Motion — Wikipedia',url:'https://en.wikipedia.org/wiki/Projectile_motion',sub:'Wikipedia · Full theory, derivations, examples',type:'wiki',section:'📖 References'},
+      {title:'HyperPhysics — Projectile Motion',url:'http://hyperphysics.phy-astr.gsu.edu/hbase/traj.html',sub:'HyperPhysics · Concise formulae and diagrams',type:'notes',section:'📖 References'},
+      {title:'The Physics Classroom — Projectile',url:'https://www.physicsclassroom.com/class/vectors/Lesson-2/What-is-a-Projectile',sub:'Physics Classroom · Free structured lessons',type:'notes',section:'📖 References'},
+      {title:'PhET — Projectile Motion simulator',url:'https://phet.colorado.edu/en/simulations/projectile-motion',sub:'PhET Colorado · Interactive with air resistance',type:'sim',section:'🔬 Interactive'},
+    ],
+    'waves': [
+      {title:'Wave motion — 3Blue1Brown',url:'https://www.youtube.com/watch?v=4R4g0gM8oRQ',sub:'3Blue1Brown · Visualizing waves beautifully',type:'yt',section:'📺 Videos'},
+      {title:'Standing waves & harmonics — Khan Academy',url:'https://www.youtube.com/watch?v=no7ZPPqtZEg',sub:'Khan Academy · Nodes, antinodes, resonance',type:'yt',section:'📺 Videos'},
+      {title:'Traveling waves explained',url:'https://www.youtube.com/watch?v=Rbuhdo0AZDU',sub:'Physics Online · Traveling vs standing',type:'yt',section:'📺 Videos'},
+      {title:'Wave superposition — MIT OpenCourseWare',url:'https://www.youtube.com/watch?v=tbkxCHD9DUo',sub:'MIT · Interference and superposition demo',type:'yt',section:'📺 Videos'},
+      {title:'Wave — Wikipedia',url:'https://en.wikipedia.org/wiki/Wave',sub:'Wikipedia · Full treatment of wave theory',type:'wiki',section:'📖 References'},
+      {title:'Standing wave — Wikipedia',url:'https://en.wikipedia.org/wiki/Standing_wave',sub:'Wikipedia · Nodes, harmonics, applications',type:'wiki',section:'📖 References'},
+      {title:'HyperPhysics — Waves',url:'http://hyperphysics.phy-astr.gsu.edu/hbase/wavcon.html',sub:'HyperPhysics · Speed, wavelength, frequency',type:'notes',section:'📖 References'},
+      {title:'PhET — Wave on a String',url:'https://phet.colorado.edu/en/simulations/wave-on-a-string',sub:'PhET Colorado · Interactive string waves',type:'sim',section:'🔬 Interactive'},
+      {title:'PhET — Wave Interference',url:'https://phet.colorado.edu/en/simulations/wave-interference',sub:'PhET Colorado · Superposition & interference',type:'sim',section:'🔬 Interactive'},
+    ],
+    'electric': [
+      {title:'Electric Fields — 3Blue1Brown style',url:'https://www.youtube.com/watch?v=haIPCkIoiAg',sub:'Zach Star · Visual intro to fields',type:'yt',section:'📺 Videos'},
+      {title:'Coulomb\'s Law — Khan Academy',url:'https://www.youtube.com/watch?v=l6kjpHPTYRs',sub:'Khan Academy · Force between charges',type:'yt',section:'📺 Videos'},
+      {title:'Electric Field Lines explained',url:'https://www.youtube.com/watch?v=mdulzEfQi7A',sub:'The Organic Chemistry Tutor · Field lines & patterns',type:'yt',section:'📺 Videos'},
+      {title:'Gauss\'s Law full lecture',url:'https://www.youtube.com/watch?v=SThxNOyGpZM',sub:'Michel van Biezen · Gauss\'s Law with examples',type:'yt',section:'📺 Videos'},
+      {title:'Electric dipole deep dive',url:'https://www.youtube.com/watch?v=IXDE7ZkKGDM',sub:'Physics Online · Dipole field patterns',type:'yt',section:'📺 Videos'},
+      {title:'Coulomb\'s Law — Wikipedia',url:'https://en.wikipedia.org/wiki/Coulomb%27s_law',sub:'Wikipedia · Full derivation and applications',type:'wiki',section:'📖 References'},
+      {title:'Electric field — Wikipedia',url:'https://en.wikipedia.org/wiki/Electric_field',sub:'Wikipedia · Definition, field lines, Gauss',type:'wiki',section:'📖 References'},
+      {title:'HyperPhysics — Electric Fields',url:'http://hyperphysics.phy-astr.gsu.edu/hbase/electric/elefield.html',sub:'HyperPhysics · Concise reference',type:'notes',section:'📖 References'},
+      {title:'PhET — Charges and Fields',url:'https://phet.colorado.edu/en/simulations/charges-and-fields',sub:'PhET Colorado · Interactive field visualizer',type:'sim',section:'🔬 Interactive'},
+      {title:'PhET — Electric Field Hockey',url:'https://phet.colorado.edu/en/simulations/electric-hockey',sub:'PhET Colorado · Fun charge interaction game',type:'sim',section:'🔬 Interactive'},
+    ]
+  };
+
   var DB = {
     'mass-spring': {
       questions: [
@@ -922,6 +988,9 @@ var QA = (function(){
   // ── RENDER HELPERS
   function renderList(){
     var listEl=$('qa-list');
+    if(tab==='resources'){
+      renderResources(); return;
+    }
     var data=(DB[topic]&&DB[topic][tab])||[];
     if(!data.length){listEl.innerHTML='';return;}
     listEl.innerHTML=data.map(function(item,i){
@@ -930,6 +999,40 @@ var QA = (function(){
       var tl=item.tag||(tab==='glossary'?'Definition':tab==='derivations'?'Derivation':'Question');
       return '<div class="qa-item'+(i===sel?' sel':'')+'" onclick="QA.select('+i+')" style="cursor:pointer"><div class="qa-item-text">'+label+'</div><div class="qa-item-tag '+tc+'">'+tl+'</div></div>';
     }).join('');
+  }
+
+  function renderResources(){
+    var listEl=$('qa-list');
+    var res=(RES[topic])||[];
+    if(!res.length){listEl.innerHTML='';return;}
+    listEl.innerHTML=res.map(function(r,i){
+      var iconMap={yt:'🎬',wiki:'📖',notes:'📝',sim:'🔬'};
+      return '<div class="qa-item" onclick="QA.openRes('+i+')" style="cursor:pointer"><div class="qa-item-text">'+r.title+'</div><div class="qa-item-tag tag-r">'+r.type.toUpperCase()+'</div></div>';
+    }).join('');
+    // show first resource in answer panel
+    $('qa-answer').innerHTML=buildResPanel(topic);
+  }
+
+  function buildResPanel(tp){
+    var res=(RES[tp])||[];
+    if(!res.length)return '<div class="qa-empty"><div class="qa-empty-icon">🔗</div><div>No resources yet</div></div>';
+    var iconMap={yt:'🎬',wiki:'📖',notes:'📝',sim:'🔬'};
+    var typeClass={yt:'yt',wiki:'wiki',notes:'notes',sim:'sim'};
+    // group by section
+    var sections={};
+    res.forEach(function(r){var s=r.section||'Resources';if(!sections[s])sections[s]=[];sections[s].push(r);});
+    var html='';
+    Object.keys(sections).forEach(function(sec){
+      html+='<div class="res-section-label">'+sec+'</div>';
+      sections[sec].forEach(function(r){
+        html+='<a class="res-link" href="'+r.url+'" target="_blank" rel="noopener">';
+        html+='<div class="res-icon '+(typeClass[r.type]||'notes')+'">'+iconMap[r.type]+'</div>';
+        html+='<div class="res-meta"><div class="res-title">'+r.title+'<span class="res-tag '+(r.type==='yt'?'yt':'wiki')+'">'+r.type.toUpperCase()+'</span></div>';
+        html+='<div class="res-sub">'+r.sub+'</div></div>';
+        html+='</a>';
+      });
+    });
+    return html;
   }
 
   function renderAnswer(item){
@@ -956,7 +1059,7 @@ var QA = (function(){
   function updateTabs(){
     var tabs=document.querySelectorAll('.qa-tab');
     tabs.forEach(function(t,i){
-      t.classList.toggle('active',['questions','derivations','glossary'][i]===tab);
+      t.classList.toggle('active',['questions','derivations','glossary','resources'][i]===tab);
     });
   }
 
@@ -971,14 +1074,14 @@ var QA = (function(){
       tab=t;sel=-1;
       updateTabs();
       renderList();
-      showEmpty();
+      if(t!=='resources')showEmpty();
     },
     setTopic: function(p){
       if(!DB[p])return;
       topic=p;sel=-1;
       updatePill();
       if(!searchResults)renderList();
-      showEmpty();
+      if(tab!=='resources')showEmpty();
     },
     select: function(i){
       var data=(DB[topic]&&DB[topic][tab])||[];
@@ -1007,6 +1110,11 @@ var QA = (function(){
         var tc=r.tab==='questions'?'tag-q':r.tab==='derivations'?'tag-d':'tag-g';
         return '<div class="qa-item" onclick="QA.selectResult('+i+')" style="cursor:pointer"><div class="qa-item-text">'+label+'</div><div class="qa-item-tag '+tc+'">'+NAMES[r.topic]+' · '+r.tab+'</div></div>';
       }).join('');
+    },
+    openRes: function(i){
+      var res=(RES[topic])||[];
+      if(!res[i])return;
+      window.open(res[i].url,'_blank','noopener');
     },
     selectResult: function(i){
       if(!searchResults||!searchResults[i])return;
