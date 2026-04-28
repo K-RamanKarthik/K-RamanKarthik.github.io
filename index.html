@@ -879,10 +879,191 @@ kbd{background:rgba(100,160,255,.08);border:1px solid var(--border-bright);borde
 .pj-time-btn{padding:4px 10px;border-radius:4px;border:1px solid var(--border-bright);color:var(--muted);background:transparent;cursor:pointer;font-family:var(--mono);font-size:0.65rem;flex-shrink:0;transition:all .15s;}
 .pj-time-btn:hover{border-color:var(--accent);color:var(--accent);}
 .pj-time-btn.active{border-color:var(--warn);color:var(--warn);background:rgba(251,146,60,.08);}
+
+/* ══ MAIN MENU ══ */
+#main-menu{
+  position:fixed;inset:0;z-index:9999;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);
+  animation:menuFadeIn .4s ease;
+}
+#main-menu.hidden{display:none;}
+@keyframes menuFadeIn{from{opacity:0;}to{opacity:1;}}
+.menu-bg-grid{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(79,143,255,0.05)1px,transparent 1px),linear-gradient(90deg,rgba(79,143,255,0.05)1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;
+}
+.menu-glow{
+  position:absolute;top:-20%;left:50%;transform:translateX(-50%);
+  width:600px;height:500px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(79,143,255,0.12) 0%,transparent 70%);
+  pointer-events:none;
+}
+.menu-inner{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;align-items:center;
+  gap:0;width:min(760px,94vw);
+}
+.menu-logo{
+  display:flex;align-items:center;gap:14px;
+  font-family:var(--display);font-weight:800;font-size:2.2rem;
+  letter-spacing:-0.02em;margin-bottom:8px;
+}
+.menu-logo-icon{
+  width:52px;height:52px;
+  background:conic-gradient(from 0deg,var(--accent),var(--accent2),var(--accent3),var(--accent));
+  border-radius:16px;display:flex;align-items:center;justify-content:center;
+  font-size:26px;box-shadow:0 0 40px rgba(79,143,255,0.35);
+}
+.menu-logo span{color:var(--accent);}
+.menu-tagline{
+  font-family:var(--mono);font-size:0.78rem;color:var(--muted);
+  letter-spacing:0.15em;text-transform:uppercase;margin-bottom:48px;
+  text-align:center;
+}
+.menu-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:14px;width:100%;margin-bottom:24px;
+}
+.menu-card{
+  border:1px solid var(--border);border-radius:14px;
+  background:var(--surface);
+  padding:26px 24px 22px;cursor:pointer;
+  transition:border-color .2s,transform .2s,box-shadow .2s;
+  display:flex;flex-direction:column;gap:10px;
+  position:relative;overflow:hidden;
+  user-select:none;
+}
+.menu-card::before{
+  content:'';position:absolute;inset:0;
+  opacity:0;transition:opacity .2s;
+}
+.menu-card:hover{transform:translateY(-3px);box-shadow:0 20px 50px rgba(0,0,0,.5);}
+.menu-card.c-blue{border-color:rgba(79,143,255,0.22);}
+.menu-card.c-blue::before{background:radial-gradient(ellipse at 0% 0%,rgba(79,143,255,0.07),transparent 70%);}
+.menu-card.c-blue:hover{border-color:rgba(79,143,255,0.55);box-shadow:0 20px 50px rgba(79,143,255,.1);}
+.menu-card.c-purple{border-color:rgba(167,139,250,0.22);}
+.menu-card.c-purple::before{background:radial-gradient(ellipse at 0% 0%,rgba(167,139,250,0.07),transparent 70%);}
+.menu-card.c-purple:hover{border-color:rgba(167,139,250,0.55);box-shadow:0 20px 50px rgba(167,139,250,.1);}
+.menu-card.c-green{border-color:rgba(52,211,153,0.22);}
+.menu-card.c-green::before{background:radial-gradient(ellipse at 0% 0%,rgba(52,211,153,0.07),transparent 70%);}
+.menu-card.c-green:hover{border-color:rgba(52,211,153,0.55);box-shadow:0 20px 50px rgba(52,211,153,.1);}
+.menu-card.c-orange{border-color:rgba(251,146,60,0.22);}
+.menu-card.c-orange::before{background:radial-gradient(ellipse at 0% 0%,rgba(251,146,60,0.07),transparent 70%);}
+.menu-card.c-orange:hover{border-color:rgba(251,146,60,0.55);box-shadow:0 20px 50px rgba(251,146,60,.1);}
+.menu-card:hover::before{opacity:1;}
+.menu-card-header{display:flex;align-items:center;justify-content:space-between;}
+.menu-card-icon{font-size:1.8rem;line-height:1;}
+.menu-card-num{font-family:var(--mono);font-size:0.6rem;letter-spacing:.15em;color:var(--muted);}
+.menu-card-title{font-family:var(--display);font-size:1.05rem;font-weight:700;color:var(--text);line-height:1.2;}
+.menu-card-desc{font-size:0.76rem;color:var(--muted2);line-height:1.55;}
+.menu-card-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;}
+.menu-card-chip{font-family:var(--mono);font-size:0.58rem;padding:2px 7px;border-radius:4px;border:1px solid var(--border-bright);color:var(--muted);}
+.menu-card-arrow{
+  position:absolute;bottom:18px;right:20px;
+  font-family:var(--mono);font-size:0.65rem;color:var(--muted);
+  transition:color .2s,transform .2s;
+}
+.menu-card:hover .menu-card-arrow{transform:translateX(4px);}
+.menu-card.c-blue:hover .menu-card-arrow{color:var(--accent);}
+.menu-card.c-purple:hover .menu-card-arrow{color:var(--accent2);}
+.menu-card.c-green:hover .menu-card-arrow{color:var(--accent3);}
+.menu-card.c-orange:hover .menu-card-arrow{color:var(--warn);}
+.menu-footer{
+  display:flex;align-items:center;gap:16px;
+  font-family:var(--mono);font-size:0.65rem;color:var(--muted);
+}
+.menu-footer-dot{width:3px;height:3px;border-radius:50%;background:var(--muted);opacity:.4;}
+
+@media(max-width:560px){
+  .menu-grid{grid-template-columns:1fr;}
+  .menu-logo{font-size:1.6rem;}
+  .menu-logo-icon{width:40px;height:40px;font-size:20px;}
+}
 </style>
 
 </head>
 <body>
+
+<!-- ══ MAIN MENU ══ -->
+<div id="main-menu">
+  <div class="menu-bg-grid"></div>
+  <div class="menu-glow"></div>
+  <div class="menu-inner">
+    <div class="menu-logo">
+      <div class="menu-logo-icon">⚛</div>
+      Phy<span>Sim</span>
+    </div>
+    <div class="menu-tagline">Interactive Physics Laboratory &nbsp;·&nbsp; Choose a simulation</div>
+    <div class="menu-grid">
+      <div class="menu-card c-blue" onclick="launchSim('mass-spring')">
+        <div class="menu-card-header">
+          <span class="menu-card-icon">🌀</span>
+          <span class="menu-card-num">MODULE 01</span>
+        </div>
+        <div class="menu-card-title">Mass–Spring Oscillator</div>
+        <div class="menu-card-desc">Simulate simple harmonic motion and damping. Drag the mass, watch energy exchange between kinetic and potential.</div>
+        <div class="menu-card-chips">
+          <span class="menu-card-chip">SHM</span>
+          <span class="menu-card-chip">Damping</span>
+          <span class="menu-card-chip">ODEs</span>
+          <span class="menu-card-chip">Energy</span>
+        </div>
+        <span class="menu-card-arrow">→ Launch</span>
+      </div>
+      <div class="menu-card c-purple" onclick="launchSim('projectile')">
+        <div class="menu-card-header">
+          <span class="menu-card-icon">🎯</span>
+          <span class="menu-card-num">MODULE 02</span>
+        </div>
+        <div class="menu-card-title">Projectile Motion</div>
+        <div class="menu-card-desc">Fire a projectile and trace its parabolic arc. Hover any point to see velocity, height, and time data live.</div>
+        <div class="menu-card-chips">
+          <span class="menu-card-chip">Kinematics</span>
+          <span class="menu-card-chip">Vectors</span>
+          <span class="menu-card-chip">Gravity</span>
+        </div>
+        <span class="menu-card-arrow">→ Launch</span>
+      </div>
+      <div class="menu-card c-green" onclick="launchSim('waves')">
+        <div class="menu-card-header">
+          <span class="menu-card-icon">〰</span>
+          <span class="menu-card-num">MODULE 03</span>
+        </div>
+        <div class="menu-card-title">Wave Mechanics</div>
+        <div class="menu-card-desc">Explore transverse waves, interference, and standing waves. Adjust amplitude, frequency, and damping in real time.</div>
+        <div class="menu-card-chips">
+          <span class="menu-card-chip">Interference</span>
+          <span class="menu-card-chip">Standing Waves</span>
+          <span class="menu-card-chip">Superposition</span>
+        </div>
+        <span class="menu-card-arrow">→ Launch</span>
+      </div>
+      <div class="menu-card c-orange" onclick="launchSim('electric')">
+        <div class="menu-card-header">
+          <span class="menu-card-icon">⚡</span>
+          <span class="menu-card-num">MODULE 04</span>
+        </div>
+        <div class="menu-card-title">Electric Field</div>
+        <div class="menu-card-desc">Place positive and negative charges, watch field lines form, and explore Coulomb's law through interactive visualization.</div>
+        <div class="menu-card-chips">
+          <span class="menu-card-chip">Coulomb's Law</span>
+          <span class="menu-card-chip">Field Lines</span>
+          <span class="menu-card-chip">Superposition</span>
+        </div>
+        <span class="menu-card-arrow">→ Launch</span>
+      </div>
+    </div>
+    <div class="menu-footer">
+      <span>4 simulations</span>
+      <span class="menu-footer-dot"></span>
+      <span>Real-time physics engine</span>
+      <span class="menu-footer-dot"></span>
+      <span>Built-in Q&amp;A · Glossary · Quiz</span>
+    </div>
+  </div>
+</div>
 <button class="header-show-btn" id="header-show-btn" onclick="toggleHeader(true)" title="Show header">⚛ PhySim <span style="opacity:.5;font-size:0.55rem">↓ show</span></button>
 <header id="header-bar">
   <div class="logo"><div class="logo-icon">⚛</div>Phy<span>Sim</span></div>
@@ -4826,6 +5007,27 @@ window.pjStepTime = function(delta) {
   // We patch via a global exposed by the pj IIFE
   if(window._pjStepTime) window._pjStepTime(delta);
 };
+
+// ════════════════════════════════════════════════════════
+//  MAIN MENU
+// ════════════════════════════════════════════════════════
+function launchSim(panel) {
+  var menu = document.getElementById('main-menu');
+  menu.style.animation = 'none';
+  menu.style.transition = 'opacity .3s';
+  menu.style.opacity = '0';
+  setTimeout(function() {
+    menu.classList.add('hidden');
+    // activate the chosen panel tab
+    document.querySelectorAll('.nav-tab').forEach(function(t) {
+      var active = t.dataset.panel === panel;
+      t.classList.toggle('active', active);
+    });
+    document.querySelectorAll('.panel').forEach(function(p) {
+      p.classList.toggle('active', p.id === 'panel-' + panel);
+    });
+  }, 300);
+}
 
 // ════════════════════════════════════════════════════════
 //  KEYBOARD SHORTCUTS
